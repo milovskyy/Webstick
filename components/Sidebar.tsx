@@ -5,10 +5,10 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { CgScreen } from 'react-icons/cg'
-import { FiFileText } from 'react-icons/fi'
+import { FiFileText, FiSidebar } from 'react-icons/fi'
 import { LuFolders } from 'react-icons/lu'
-import { HiMenu, HiX } from 'react-icons/hi'
 import { cn } from '@/lib/utils'
+import { IoIosArrowDown } from 'react-icons/io'
 
 const menuItems = [
   {
@@ -50,7 +50,6 @@ export function Sidebar() {
 
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed)
-    // Закрываем все открытые подменю при сворачивании
     if (!isCollapsed) {
       setOpenItems([])
     }
@@ -62,79 +61,92 @@ export function Sidebar() {
     <aside
       className={`${
         isCollapsed ? 'w-[72px]' : 'w-64'
-      } bg-[#F8F9FB] text-white flex flex-col transition-all duration-300`}
+      } bg-[#F8F9FB] text-white flex flex-col transition-all duration-300 text-sm`}
     >
       <div
         className={cn(
-          'p-4 flex items-center',
-          isCollapsed ? 'justify-center flex-col gap-2' : 'justify-between'
+          'h-[61px]',
+          isCollapsed
+            ? 'flex flex-col gap-1 items-center pt-4'
+            : 'justify-between p-6 pb-2 flex items-center'
         )}
       >
         {isCollapsed ? (
           <>
-            <div className="w-8 h-8 bg-white rounded flex items-center justify-center">
-              <span className="text-[#F8F9FB] font-bold text-sm">B</span>
-            </div>
-            <button
-              onClick={toggleSidebar}
-              className="p-2 rounded hover:bg-gray-700 transition-colors flex items-center justify-center"
-              aria-label="Toggle sidebar"
-            >
-              <HiMenu size={20} />
+            <button onClick={toggleSidebar} aria-label="Toggle sidebar">
+              <Image
+                src="/Biksico-mini.png"
+                alt="logo"
+                width={35}
+                height={45}
+              />
             </button>
           </>
         ) : (
-          <>
+          <div className="flex  justify-between w-full">
             <Image src="/Biksico.png" alt="logo" width={103} height={29} />
             <button
               onClick={toggleSidebar}
-              className="ml-2 p-2 rounded hover:bg-gray-700 transition-colors flex items-center justify-center"
+              className="ml-2 p-[6px] rounded hover:bg-[#E4E4E7] transition-colors flex items-center justify-center text-[#3F3F46] "
               aria-label="Toggle sidebar"
             >
-              <HiX size={20} />
+              <FiSidebar size={16} />
             </button>
-          </>
+          </div>
         )}
       </div>
-      <nav className="flex-1 overflow-y-auto p-2">
+      <nav className="flex-1 overflow-y-auto p-4  text-[#3F3F46] ">
         {menuItems.map((item) => (
           <div key={item.title}>
             {item.children ? (
               <div>
                 <button
-                  onClick={() => toggleItem(item.title)}
-                  className={`w-full flex items-center ${
+                  onClick={() => {
+                    console.log('clicked')
+                    toggleItem(item.title)
+                  }}
+                  className={cn(
+                    'w-full flex items-center p-2 hover:bg-[#E4E4E7] transition-colors',
                     isCollapsed ? 'justify-center' : 'justify-between'
-                  } p-3 rounded hover:bg-gray-700 transition-colors`}
+                  )}
                   title={isCollapsed ? item.title : undefined}
                 >
                   <span
-                    className={`flex items-center ${
+                    className={`flex items-center  ${
                       isCollapsed ? '' : 'gap-2'
                     }`}
                   >
-                    <span className="flex-shrink-0">{item.icon}</span>
+                    <span className="flex-shrink-0 w-4 flex items-center justify-center">
+                      {item.icon}
+                    </span>
                     {!isCollapsed && <span>{item.title}</span>}
                   </span>
                   {!isCollapsed && (
                     <span
-                      className={
-                        openItems.includes(item.title) ? 'rotate-90' : ''
-                      }
+                      className={cn(
+                        'rotate-90 transition-transform duration-300',
+                        openItems.includes(item.title) && 'rotate-0 '
+                      )}
                     >
-                      ▶
+                      <IoIosArrowDown size={16} />
                     </span>
                   )}
                 </button>
                 {!isCollapsed && openItems.includes(item.title) && (
-                  <div className="ml-4 mt-1">
+                  <div
+                    className={cn(
+                      'ml-4 pl-2  border-l pr-6 border-l-[#E5E7EB] flex flex-col gap-1'
+                    )}
+                  >
                     {item.children.map((child) => (
                       <Link
                         key={child.href}
                         href={child.href}
-                        className={`block p-2 rounded hover:bg-gray-700 transition-colors ${
-                          isActive(child.href) ? 'bg-gray-700' : ''
-                        }`}
+                        className={cn(
+                          `block px-2 py-1 rounded-[6px] hover:bg-[#E4E4E7] transition-colors `,
+                          isActive(child.href) &&
+                            'bg-[#E4E4E7] font-medium text-[#09090B]'
+                        )}
                       >
                         {child.title}
                       </Link>
@@ -145,12 +157,17 @@ export function Sidebar() {
             ) : (
               <Link
                 href={item.href}
-                className={`flex items-center ${
-                  isCollapsed ? 'justify-center' : 'gap-2'
-                } p-3 rounded hover:bg-gray-700 transition-colors`}
+                className={cn(
+                  'flex items-center px-2 py-[6px] hover:bg-[#E4E4E7] transition-colors',
+                  isCollapsed ? 'justify-center py-2 h-8' : 'gap-2 ',
+                  isActive(item.href) &&
+                    'bg-[#E4E4E7] font-medium text-[#09090B]'
+                )}
                 title={isCollapsed ? item.title : undefined}
               >
-                <span className="flex-shrink-0">{item.icon}</span>
+                <span className="flex-shrink-0 w-4 flex items-center justify-center">
+                  {item.icon}
+                </span>
                 {!isCollapsed && <span>{item.title}</span>}
               </Link>
             )}
