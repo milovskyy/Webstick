@@ -1,36 +1,36 @@
-'use client'
+"use client"
 
-import Image from 'next/image'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { useState } from 'react'
-import { CgScreen } from 'react-icons/cg'
-import { FiFileText, FiSidebar } from 'react-icons/fi'
-import { LuFolders } from 'react-icons/lu'
-import { cn } from '@/lib/utils'
-import { IoIosArrowDown } from 'react-icons/io'
+import { cn } from "@/lib/utils"
+import Image from "next/image"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { useState } from "react"
+import { CgScreen } from "react-icons/cg"
+import { FiFileText, FiSidebar } from "react-icons/fi"
+import { IoIosArrowDown } from "react-icons/io"
+import { LuFolders } from "react-icons/lu"
 
 const menuItems = [
   {
-    title: 'Дашборд',
-    href: '/',
+    title: "Дашборд",
+    href: "/",
     icon: <CgScreen />,
   },
   {
-    title: 'Замовлення',
-    href: '/orders',
+    title: "Замовлення",
+    href: "/orders",
     icon: <FiFileText />,
   },
   {
-    title: 'Каталог',
+    title: "Каталог",
     icon: <LuFolders />,
     children: [
-      { title: 'Товари', href: '/products' },
-      { title: 'Залишки', href: '/inventory' },
-      { title: 'Категорії', href: '/categories' },
-      { title: 'Колекції', href: '/collections' },
-      { title: 'Лейбли', href: '/labels' },
-      { title: 'Бренди', href: '/brands' },
+      { title: "Товари", href: "/products" },
+      { title: "Залишки", href: "/inventory" },
+      { title: "Категорії", href: "/categories" },
+      { title: "Колекції", href: "/collections" },
+      { title: "Лейбли", href: "/labels" },
+      { title: "Бренди", href: "/brands" },
     ],
   },
 ]
@@ -60,15 +60,16 @@ export function Sidebar() {
   return (
     <aside
       className={`${
-        isCollapsed ? 'w-[72px]' : 'w-64'
-      } bg-[#F8F9FB] text-white flex flex-col transition-all duration-300 text-sm`}
+        isCollapsed ? "w-[72px]" : "w-64"
+      } flexflex-col bg-[#F8F9FB] text-sm text-white transition-all duration-300`}
     >
       <div
         className={cn(
-          'h-[61px]',
+          "h-[61px]",
+
           isCollapsed
-            ? 'flex flex-col gap-1 items-center pt-4'
-            : 'justify-between p-6 pb-2 flex items-center'
+            ? "flex flex-col items-center gap-1 pt-4"
+            : "flex items-center justify-between p-6 pb-2"
         )}
       >
         {isCollapsed ? (
@@ -83,11 +84,11 @@ export function Sidebar() {
             </button>
           </>
         ) : (
-          <div className="flex  justify-between w-full">
+          <div className="flex w-full justify-between">
             <Image src="/Biksico.png" alt="logo" width={103} height={29} />
             <button
               onClick={toggleSidebar}
-              className="ml-2 p-[6px] rounded hover:bg-[#E4E4E7] transition-colors flex items-center justify-center text-[#3F3F46] "
+              className="ml-2 flex items-center justify-center rounded p-[6px] text-[#3F3F46] transition-colors hover:bg-[#E4E4E7]"
               aria-label="Toggle sidebar"
             >
               <FiSidebar size={16} />
@@ -95,28 +96,27 @@ export function Sidebar() {
           </div>
         )}
       </div>
-      <nav className="flex-1 overflow-y-auto p-4  text-[#3F3F46] ">
+      <nav className="flex-1 overflow-y-auto p-4 text-[#3F3F46]">
         {menuItems.map((item) => (
           <div key={item.title}>
             {item.children ? (
               <div>
                 <button
                   onClick={() => {
-                    console.log('clicked')
                     toggleItem(item.title)
                   }}
                   className={cn(
-                    'w-full flex items-center p-2 hover:bg-[#E4E4E7] transition-colors',
-                    isCollapsed ? 'justify-center' : 'justify-between'
+                    "flex w-full items-center px-2 py-[6px] transition-colors hover:bg-[#E4E4E7]",
+                    isCollapsed ? "justify-center py-[9px]" : "justify-between"
                   )}
                   title={isCollapsed ? item.title : undefined}
                 >
                   <span
-                    className={`flex items-center  ${
-                      isCollapsed ? '' : 'gap-2'
+                    className={`flex items-center ${
+                      isCollapsed ? "" : "gap-2"
                     }`}
                   >
-                    <span className="flex-shrink-0 w-4 flex items-center justify-center">
+                    <span className="flex w-4 flex-shrink-0 items-center justify-center">
                       {item.icon}
                     </span>
                     {!isCollapsed && <span>{item.title}</span>}
@@ -124,18 +124,19 @@ export function Sidebar() {
                   {!isCollapsed && (
                     <span
                       className={cn(
-                        'rotate-90 transition-transform duration-300',
-                        openItems.includes(item.title) && 'rotate-0 '
+                        "rotate-90 transition-transform duration-300",
+                        openItems.includes(item.title) && "rotate-0"
                       )}
                     >
                       <IoIosArrowDown size={16} />
                     </span>
                   )}
                 </button>
-                {!isCollapsed && openItems.includes(item.title) && (
+                {!isCollapsed && (
                   <div
                     className={cn(
-                      'ml-4 pl-2  border-l pr-6 border-l-[#E5E7EB] flex flex-col gap-1'
+                      "duration-400 ml-4 flex h-0 flex-col gap-1 overflow-hidden border-l border-l-[#E5E7EB] pl-2 pr-6 transition-all ease-in-out",
+                      openItems.includes(item.title) && "h-48"
                     )}
                   >
                     {item.children.map((child) => (
@@ -143,9 +144,9 @@ export function Sidebar() {
                         key={child.href}
                         href={child.href}
                         className={cn(
-                          `block px-2 py-1 rounded-[6px] hover:bg-[#E4E4E7] transition-colors `,
+                          `flex rounded-[6px] px-2 py-1 transition-colors hover:bg-[#E4E4E7]`,
                           isActive(child.href) &&
-                            'bg-[#E4E4E7] font-medium text-[#09090B]'
+                            "bg-[#E4E4E7] font-medium text-[#09090B]"
                         )}
                       >
                         {child.title}
@@ -158,14 +159,14 @@ export function Sidebar() {
               <Link
                 href={item.href}
                 className={cn(
-                  'flex items-center px-2 py-[6px] hover:bg-[#E4E4E7] transition-colors',
-                  isCollapsed ? 'justify-center py-2 h-8' : 'gap-2 ',
+                  "flex items-center px-2 py-[6px] transition-colors hover:bg-[#E4E4E7]",
+                  isCollapsed ? "h-8 justify-center py-2" : "gap-2",
                   isActive(item.href) &&
-                    'bg-[#E4E4E7] font-medium text-[#09090B]'
+                    "bg-[#E4E4E7] font-medium text-[#09090B]"
                 )}
                 title={isCollapsed ? item.title : undefined}
               >
-                <span className="flex-shrink-0 w-4 flex items-center justify-center">
+                <span className="flex w-4 flex-shrink-0 items-center justify-center">
                   {item.icon}
                 </span>
                 {!isCollapsed && <span>{item.title}</span>}

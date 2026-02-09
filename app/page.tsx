@@ -6,17 +6,14 @@ export default function Dashboard() {
         <div className="bg-white p-6 rounded-lg shadow">
           <h2 className="text-xl font-semibold mb-2">Товари</h2>
           <p className="text-3xl font-bold">0</p>
-          {/* TODO: Fetch and display actual product count */}
         </div>
         <div className="bg-white p-6 rounded-lg shadow">
           <h2 className="text-xl font-semibold mb-2">Замовлення</h2>
           <p className="text-3xl font-bold">0</p>
-          {/* TODO: Fetch and display actual order count */}
         </div>
         <div className="bg-white p-6 rounded-lg shadow">
           <h2 className="text-xl font-semibold mb-2">Доходи</h2>
           <p className="text-3xl font-bold">0 ₴</p>
-          {/* TODO: Fetch and display actual revenue */}
         </div>
       </div>
     </div>

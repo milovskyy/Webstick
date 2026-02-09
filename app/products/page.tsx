@@ -1,6 +1,7 @@
-import Link from 'next/link'
-import Image from 'next/image'
 import { prisma } from '@/lib/prisma'
+import Image from 'next/image'
+import Link from 'next/link'
+import { FiPlus } from 'react-icons/fi'
 
 async function getProducts() {
   try {
@@ -17,16 +18,27 @@ export default async function ProductsPage() {
   const products = await getProducts()
 
   return (
-    <div className="p-8">
+    <div className="pt-5 pb-8 pl-0 pr-5 bg-[#F8F9FB] h-full flex flex-col gap-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Товари</h1>
+        <h1 className="text-xl font-semibold text-[#3F3F46]">Товари</h1>
+
         <Link
           href="/products/new"
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          className="px-4 flex items-center justify-center gap-2 py-2 bg-[#2563EB] text-white rounded-md hover:bg-blue-700"
         >
-          + Додати товар
+          <FiPlus size={16} strokeWidth={3} className="text-white" />
+          <p className="text-sm font-medium text-[#F8F9FB]">Додати</p>
         </Link>
       </div>
+
+
+
+
+      <div className="flex flex-col gap-4"></div>
+
+
+
+
 
       {products.length === 0 ? (
         <div className="text-center py-12">
