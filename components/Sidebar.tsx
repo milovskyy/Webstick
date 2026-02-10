@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useState } from "react"
 import { CgScreen } from "react-icons/cg"
 import { FiFileText, FiSidebar } from "react-icons/fi"
@@ -40,6 +40,8 @@ export function Sidebar() {
   const [openItems, setOpenItems] = useState<string[]>([])
   const [isCollapsed, setIsCollapsed] = useState(false)
 
+  const router = useRouter()
+
   const toggleItem = (title: string) => {
     setOpenItems((prev) =>
       prev.includes(title)
@@ -61,7 +63,7 @@ export function Sidebar() {
     <aside
       className={`${
         isCollapsed ? "w-[72px]" : "w-64"
-      } flexflex-col bg-[#F8F9FB] text-sm text-white transition-all duration-300`}
+      } flex flex-col bg-[#F8F9FB] text-sm text-white transition-all duration-300`}
     >
       <div
         className={cn(
@@ -100,7 +102,16 @@ export function Sidebar() {
         {menuItems.map((item) => (
           <div key={item.title}>
             {item.children ? (
-              <div>
+              <div
+                onClick={() => {
+                  if (isCollapsed) router.push("/products")
+                }}
+                className={cn(
+                  isCollapsed &&
+                    isActive(item.children[0].href) &&
+                    "bg-[#E4E4E7] font-medium text-[#09090B]"
+                )}
+              >
                 <button
                   onClick={() => {
                     toggleItem(item.title)
@@ -124,8 +135,8 @@ export function Sidebar() {
                   {!isCollapsed && (
                     <span
                       className={cn(
-                        "rotate-90 transition-transform duration-300",
-                        openItems.includes(item.title) && "rotate-0"
+                        "rotate-0 transition-transform duration-300",
+                        openItems.includes(item.title) && "rotate-90"
                       )}
                     >
                       <IoIosArrowDown size={16} />
@@ -135,23 +146,27 @@ export function Sidebar() {
                 {!isCollapsed && (
                   <div
                     className={cn(
-                      "duration-400 ml-4 flex h-0 flex-col gap-1 overflow-hidden border-l border-l-[#E5E7EB] pl-2 pr-6 transition-all ease-in-out",
+                      "duration-400 ml-4 flex h-0 flex-col gap-1 overflow-hidden border-l border-l-[#E5E7EB] pl-2 pr-6 pt-1 transition-all ease-in-out",
                       openItems.includes(item.title) && "h-48"
                     )}
                   >
-                    {item.children.map((child) => (
-                      <Link
-                        key={child.href}
-                        href={child.href}
-                        className={cn(
-                          `flex rounded-[6px] px-2 py-1 transition-colors hover:bg-[#E4E4E7]`,
-                          isActive(child.href) &&
-                            "bg-[#E4E4E7] font-medium text-[#09090B]"
-                        )}
-                      >
-                        {child.title}
-                      </Link>
-                    ))}
+                    {!isCollapsed && openItems.includes(item.title) && (
+                      <>
+                        {item.children.map((child) => (
+                          <Link
+                            key={child.href}
+                            href={child.href}
+                            className={cn(
+                              `flex rounded-[6px] px-2 py-1 transition-colors hover:bg-[#E4E4E7]`,
+                              isActive(child.href) &&
+                                "bg-[#E4E4E7] font-medium text-[#09090B]"
+                            )}
+                          >
+                            {child.title}
+                          </Link>
+                        ))}
+                      </>
+                    )}
                   </div>
                 )}
               </div>
@@ -159,7 +174,7 @@ export function Sidebar() {
               <Link
                 href={item.href}
                 className={cn(
-                  "flex items-center px-2 py-[6px] transition-colors hover:bg-[#E4E4E7]",
+                  "flex items-center px-2 py-[6px] ring-[#A1A1AA] transition-colors hover:bg-[#E4E4E7]",
                   isCollapsed ? "h-8 justify-center py-2" : "gap-2",
                   isActive(item.href) &&
                     "bg-[#E4E4E7] font-medium text-[#09090B]"
