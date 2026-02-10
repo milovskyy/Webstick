@@ -24,9 +24,9 @@ export default async function ProductsPage() {
 
         <Link
           href="/products/new"
-          className="flex items-center justify-center gap-2 rounded-md bg-[#2563EB] px-4 py-2 text-white hover:bg-[#3A72ED]"
+          className="flex items-center justify-center gap-2 rounded-md bg-[#2563EB] px-4 py-2 text-[#F8F9FB] hover:bg-[#3A72ED]"
         >
-          <FiPlus size={16} strokeWidth={3} className="text-white" />
+          <FiPlus size={16} strokeWidth={3} className="text-[#F8F9FB]" />
           <p className="text-sm font-medium text-[#F8F9FB]">Додати</p>
         </Link>
       </div>
