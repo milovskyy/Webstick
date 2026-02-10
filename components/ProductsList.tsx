@@ -5,6 +5,8 @@ import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import { FaXmark } from "react-icons/fa6"
 import { FiSearch } from "react-icons/fi"
+import { DeleteProductModal } from "./DeleteProductModal"
+import { ProductRow } from "./ProductRow"
 import { ProductsPagination } from "./ProductsPagination"
 import { Input } from "./ui/input"
 
@@ -33,6 +35,9 @@ function filterProducts(products: Product[], query: string): Product[] {
 const DEFAULT_PAGE_SIZE = 10
 
 export function ProductsList({ products }: Props) {
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+
   const [query, setQuery] = useState("")
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
@@ -51,6 +56,12 @@ export function ProductsList({ products }: Props) {
     [filteredProducts, start, pageSize]
   )
 
+  const handleDeleteClick = (product: Product) => {
+    console.log("delete", product)
+    setProductToDelete(product)
+    setIsDeleteModalOpen(true)
+  }
+
   const handlePageChange = (newPage: number) => {
     setPage(Math.max(1, Math.min(newPage, totalPages)))
   }
@@ -60,14 +71,29 @@ export function ProductsList({ products }: Props) {
     setPage(1)
   }
 
+  const handleConfirmDelete = async (id: string) => {
+    console.log("delete", id)
+    // await deleteProduct(id);
+    // setIsDeleteModalOpen(false);
+    // setProductToDelete(null);
+  }
+
   useEffect(() => {
     if (totalPages > 0 && page > totalPages) setPage(totalPages)
   }, [totalPages, page])
 
   return (
     <div className="flex h-full w-full flex-col gap-6">
+      {isDeleteModalOpen && productToDelete && (
+        <DeleteProductModal
+          isDeleteModalOpen={isDeleteModalOpen}
+          setIsDeleteModalOpen={setIsDeleteModalOpen}
+          onCancel={() => setIsDeleteModalOpen(false)}
+          onConfirm={() => handleConfirmDelete(productToDelete.id)}
+        />
+      )}
       <div className="flex h-8 w-[400px]">
-        <div className="relative ml-[1px] flex-1">
+        <div className="relative ml-[1px] flex w-full flex-1 items-center">
           <label htmlFor="products-search" className="sr-only">
             Пошук товарів за назвою або описом
           </label>
@@ -75,7 +101,7 @@ export function ProductsList({ products }: Props) {
             className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
             size={16}
           />
-          <div className="group/field">
+          <div className="group/field w-full">
             <Input
               id="products-search"
               type="text"
@@ -158,15 +184,26 @@ export function ProductsList({ products }: Props) {
             </div>
           )
         ) : products.length === 0 ? (
-          <div className="py-12 text-center">
-            <p className="mb-4 text-gray-500">Немає товарів</p>
-            <Link
-              href="/products/new"
-              className="text-blue-600 hover:underline"
-            >
-              Створити перший товар
-            </Link>
-          </div>
+          // <div className="py-12 text-center">
+          //   <p className="mb-4 text-gray-500">Немає товарів</p>
+          //   <Link
+          //     href="/products/new"
+          //     className="text-blue-600 hover:underline"
+          //   >
+          //     Створити перший товар
+          //   </Link>
+          // </div>
+          <ProductRow
+            onDelete={() =>
+              handleDeleteClick({
+                id: "33",
+                title: "Product 33",
+                shortDescription: "Product 33 description",
+                price: 100,
+                imageSmall: "/productrow-image-test.png",
+              })
+            }
+          />
         ) : (
           <div
             id="products-grid"
