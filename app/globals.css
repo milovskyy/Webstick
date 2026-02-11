@@ -2,6 +2,65 @@
 @tailwind components;
 @tailwind utilities;
 
+/* .editor-image {
+  max-width: 300px;
+  width: 100%;
+  height: auto;
+  display: block;
+  margin: 12px auto;
+  border-radius: 8px;
+} */
+
+.ProseMirror {
+  min-height: 220px;
+  outline: none;
+  padding: 12px 16px 10px 16px;
+}
+
+.ProseMirror p {
+  margin: 0;
+}
+
+.ProseMirror p:empty {
+  min-height: 1.5em;
+}
+
+.ProseMirror h1 {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.ProseMirror h2 {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.ProseMirror ul {
+  list-style: disc;
+  padding-left: 20px;
+}
+
+.ProseMirror ol {
+  list-style: decimal;
+  padding-left: 20px;
+}
+
+.ProseMirror img {
+  max-width: 272px;
+  border-radius: 8px;
+  margin: 8px 0;
+}
+
+.ProseMirror::-webkit-scrollbar {
+  width: 2px;
+}
+
+.ProseMirror::-webkit-scrollbar-button {
+  display: none;
+  height: 0;
+  width: 0;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -28,7 +87,7 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --radius: 0.5rem
+    --radius: 0.5rem;
   }
   .dark {
     --background: 0 0% 3.9%;
@@ -54,7 +113,7 @@
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%
+    --chart-5: 340 75% 55%;
   }
 }
 

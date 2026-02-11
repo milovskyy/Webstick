@@ -108,7 +108,7 @@ export function ProductsList({ products }: Props) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Пошук товару"
-              className="w-full cursor-pointer rounded-md border border-[#E4E4E7] bg-white py-2.5 pl-8 pr-4 text-sm text-[#18181B] placeholder:text-[#A1A1AA] focus:border-[#2563EB] focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus-visible:ring-0 disabled:opacity-50 group-hover/field:border-[#2563EB]"
+              className="w-full rounded-md border border-[#E4E4E7] bg-white py-2.5 pl-8 pr-4 text-sm text-[#18181B] placeholder:text-[#A1A1AA] focus:border-[#2563EB] focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus-visible:ring-0 disabled:opacity-50 group-hover/field:border-[#2563EB]"
             />
 
             {query && (
