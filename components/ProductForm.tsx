@@ -3,22 +3,16 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 
 import { useRouter } from "next/navigation"
-import * as React from "react"
-import { useForm, Controller } from "react-hook-form"
+import { useMemo, useState } from "react"
+import { useForm, Controller, useWatch } from "react-hook-form"
 import { z } from "zod"
 
-import {
-  ArrowLeft,
-  Bold,
-  Italic,
-  Loader2,
-  Save,
-  Underline as UIcon,
-} from "lucide-react"
+import { ArrowLeft, Loader2, Save } from "lucide-react"
 import { Input } from "./ui/input"
 import { Textarea } from "./ui/textarea"
-import { Editor } from "./Editor"
+import { FormDescription } from "./FormDescription"
 import { Switch } from "./ui/switch"
+import { MoneyInput } from "./MoneyInput"
 
 const MAX_TITLE = 200
 const MAX_SHORT = 300
@@ -46,8 +40,8 @@ type FormValues = z.infer<typeof schema>
 
 export function ProductForm() {
   const router = useRouter()
-  const [isSubmitting, setIsSubmitting] = React.useState(false)
-  const [preview, setPreview] = React.useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [preview, setPreview] = useState<string | null>(null)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -62,20 +56,33 @@ export function ProductForm() {
     },
   })
 
-  const watchTitle = form.watch("title") || ""
-  const watchShort = form.watch("shortDescription") || ""
-  const watchDesc = form.watch("description") || ""
-  const watchPrice = form.watch("price") || 0
-  const watchCost = form.watch("costPrice") || 0
-  const watchHasDiscount = form.watch("hasDiscount") || false
+  // const watchTitle = form.watch("title") || ""
+  // const watchShort = form.watch("shortDescription") || ""
+  // const watchDesc = form.watch("description") || ""
+  // const watchHasDiscount = form.watch("hasDiscount") || false
+  // const profit = watchPrice - watchCost
+  // const margin = watchPrice > 0 ? ((profit / watchPrice) * 100).toFixed(2) : 0
 
-  const profit = watchPrice - watchCost
-  const margin = watchPrice > 0 ? ((profit / watchPrice) * 100).toFixed(2) : 0
+  const price = useWatch({ control: form.control, name: "price" }) ?? 0
+  const cost = useWatch({ control: form.control, name: "costPrice" }) ?? 0
+  const description =
+    useWatch({ control: form.control, name: "description" }) ?? ""
+  const shortDescription =
+    useWatch({ control: form.control, name: "shortDescription" }) ?? ""
+  const title = useWatch({ control: form.control, name: "title" }) ?? ""
+  const hasDiscount =
+    useWatch({ control: form.control, name: "hasDiscount" }) ?? false
+
+  const { profit, margin } = useMemo(() => {
+    const profit = price - cost
+    const margin = price > 0 ? Number(((profit / price) * 100).toFixed(2)) : 0
+
+    return { profit, margin }
+  }, [price, cost])
 
   const onSubmit = async (values: FormValues) => {
     // setIsSubmitting(true)
 
-    // ВАЖНО. ДОБАВЛЯЕМ ТУТ РАССЧИТЫВАЕМЫЕ ЗНАЧЕНИЯ ПРОФИТ И МАРЖИН
     const finalData = {
       ...values,
       profit,
@@ -95,8 +102,19 @@ export function ProductForm() {
     //   body: formData,
     // })
 
-    // setIsSubmitting(false)
-    // router.push("/products")
+    // try {
+    //   const res = await fetch("/api/products", {
+    //     method: "POST",
+    //     body: formData,
+    //   })
+    //   if (!res.ok) throw new Error()
+
+    //   router.push("/products")
+    // } catch (err) {
+    //   console.error(err)
+    // } finally {
+    //   setIsSubmitting(false)
+    // }
   }
 
   const formatNumber = (value: number | string) => {
@@ -106,9 +124,9 @@ export function ProductForm() {
     return number.toLocaleString("uk-UA")
   }
 
-  const parseNumber = (value: string) => {
-    return parseFloat(value.replace(/\s/g, "").replace(",", "."))
-  }
+  // const parseNumber = (value: string) => {
+  //   return parseFloat(value.replace(/\s/g, "").replace(",", "."))
+  // }
 
   return (
     <form
@@ -148,17 +166,21 @@ export function ProductForm() {
               Назва <span className="text-[#DC2626]">*</span>
             </label>
             <span className="text-sm text-[#A1A1AA]">
-              {watchTitle.length}/{MAX_TITLE}
+              {title.length}/{MAX_TITLE}
             </span>
           </div>
 
-          <Input
-            {...form.register("title")}
-            id="title"
-            type="text"
-            maxLength={MAX_TITLE}
-            placeholder="Назва товару"
-            className="w-full rounded-md border border-[#E4E4E7] bg-white px-3 py-2 text-sm text-[#18181B] placeholder:text-[#A1A1AA] hover:border-[#2563EB] focus:border-[#2563EB] focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus-visible:ring-0"
+          <Controller
+            control={form.control}
+            name="title"
+            render={({ field }) => (
+              <Input
+                {...field}
+                type="text"
+                maxLength={MAX_TITLE}
+                className="w-full rounded-md border border-[#E4E4E7] bg-white px-3 py-2 text-sm text-[#18181B] placeholder:text-[#A1A1AA] hover:border-[#2563EB] focus:border-[#2563EB] focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus-visible:ring-0"
+              />
+            )}
           />
         </div>
 
@@ -167,30 +189,29 @@ export function ProductForm() {
           <div className="flex justify-between">
             <label className="text-sm text-[#18181B]">Короткий опис</label>
             <span className="text-sm text-[#A1A1AA]">
-              {watchShort.length}/{MAX_SHORT}
+              {shortDescription.length}/{MAX_SHORT}
             </span>
           </div>
-          <Textarea
-            {...form.register("shortDescription")}
-            maxLength={MAX_SHORT}
-            className="h-[98px] w-full rounded-md border border-[#E4E4E7] bg-white px-3 py-2 text-sm text-[#18181B] scrollbar-blue placeholder:text-[#A1A1AA] hover:border-[#2563EB] focus:border-[#2563EB] focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus-visible:ring-0"
+
+          <Controller
+            control={form.control}
+            name="shortDescription"
+            render={({ field }) => (
+              <Textarea
+                {...field}
+                maxLength={MAX_SHORT}
+                className="h-[98px] w-full rounded-md border border-[#E4E4E7] bg-white px-3 py-2 text-sm text-[#18181B] scrollbar-blue placeholder:text-[#A1A1AA] hover:border-[#2563EB] focus:border-[#2563EB] focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus-visible:ring-0"
+              />
+            )}
           />
         </div>
 
         {/* Опис */}
-        <div className="flex flex-col gap-2">
-          <div className="flex justify-between">
-            <label className="text-sm text-[#18181B]">Опис</label>
-            <span className="text-sm text-[#A1A1AA]">
-              {getPlainTextLength(watchDesc)}/{MAX_DESC}
-            </span>
-          </div>
 
-          <Editor
-            value={watchDesc}
-            onChange={(value) => form.setValue("description", value)}
-          />
-        </div>
+        <FormDescription
+          value={description}
+          onChange={(value) => form.setValue("description", value)}
+        />
       </div>
 
       {/* Зображення */}
@@ -240,7 +261,9 @@ export function ProductForm() {
               ₴
             </span>
 
-            <Controller
+            <MoneyInput name="price" control={form.control} />
+
+            {/* <Controller
               control={form.control}
               name="price"
               render={({ field }) => (
@@ -259,7 +282,7 @@ export function ProductForm() {
                   }}
                 />
               )}
-            />
+            /> */}
           </div>
         </div>
 
@@ -281,7 +304,7 @@ export function ProductForm() {
           <label className="text-sm font-medium text-[#18181B]">Знижка</label>
         </div>
 
-        {watchHasDiscount && (
+        {hasDiscount && (
           <div className="flex flex-col gap-2">
             <label className="text-sm text-[#18181B]">Ціна зі знижкою</label>
             <div className="relative w-full">
@@ -289,7 +312,9 @@ export function ProductForm() {
                 ₴
               </span>
 
-              <Controller
+              <MoneyInput name="discountPrice" control={form.control} />
+
+              {/* <Controller
                 control={form.control}
                 name="discountPrice"
                 render={({ field }) => (
@@ -308,7 +333,7 @@ export function ProductForm() {
                     }}
                   />
                 )}
-              />
+              /> */}
             </div>
           </div>
         )}
@@ -321,7 +346,9 @@ export function ProductForm() {
                 ₴
               </span>
 
-              <Controller
+              <MoneyInput name="costPrice" control={form.control} />
+
+              {/* <Controller
                 control={form.control}
                 name="costPrice"
                 render={({ field }) => (
@@ -340,7 +367,7 @@ export function ProductForm() {
                     }}
                   />
                 )}
-              />
+              /> */}
             </div>
           </div>
 
