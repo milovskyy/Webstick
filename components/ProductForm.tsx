@@ -1,19 +1,10 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import Link from "@tiptap/extension-link"
-import Underline from "@tiptap/extension-underline"
-import { EditorContent, useEditor } from "@tiptap/react"
-import StarterKit from "@tiptap/starter-kit"
 
-import Image from "@tiptap/extension-image"
-import Youtube from "@tiptap/extension-youtube"
-import { TextStyle } from "@tiptap/extension-text-style"
-import Color from "@tiptap/extension-color"
-import HorizontalRule from "@tiptap/extension-horizontal-rule"
 import { useRouter } from "next/navigation"
 import * as React from "react"
-import { useForm } from "react-hook-form"
+import { useForm, Controller } from "react-hook-form"
 import { z } from "zod"
 
 import {
@@ -27,6 +18,7 @@ import {
 import { Input } from "./ui/input"
 import { Textarea } from "./ui/textarea"
 import { Editor } from "./Editor"
+import { Switch } from "./ui/switch"
 
 const MAX_TITLE = 200
 const MAX_SHORT = 300
@@ -43,7 +35,9 @@ const schema = z.object({
   shortDescription: z.string().max(MAX_SHORT).optional(),
   description: z.string().max(MAX_DESC).optional(),
   price: z.coerce.number().min(0),
-  costPrice: z.coerce.number().optional(),
+  discountPrice: z.coerce.number().min(0).optional(),
+  costPrice: z.coerce.number().min(0),
+
   hasDiscount: z.boolean().optional(),
   image: z.any().optional(),
 })
@@ -62,6 +56,7 @@ export function ProductForm() {
       shortDescription: "",
       description: "",
       price: 0,
+      discountPrice: 0,
       costPrice: 0,
       hasDiscount: false,
     },
@@ -72,54 +67,47 @@ export function ProductForm() {
   const watchDesc = form.watch("description") || ""
   const watchPrice = form.watch("price") || 0
   const watchCost = form.watch("costPrice") || 0
+  const watchHasDiscount = form.watch("hasDiscount") || false
 
   const profit = watchPrice - watchCost
-  const margin = watchPrice > 0 ? ((profit / watchPrice) * 100).toFixed(0) : 0
-
-  const editor = useEditor({
-    immediatelyRender: false,
-    extensions: [
-      StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3],
-        },
-      }),
-      Underline,
-
-      Link.configure({
-        openOnClick: false,
-      }),
-      Image,
-      Youtube,
-      TextStyle,
-      Color,
-      HorizontalRule,
-    ],
-    content: "",
-    onUpdate({ editor }) {
-      form.setValue("description", editor.getHTML())
-    },
-  })
+  const margin = watchPrice > 0 ? ((profit / watchPrice) * 100).toFixed(2) : 0
 
   const onSubmit = async (values: FormValues) => {
     // setIsSubmitting(true)
 
-    console.log("values", values)
+    // ВАЖНО. ДОБАВЛЯЕМ ТУТ РАССЧИТЫВАЕМЫЕ ЗНАЧЕНИЯ ПРОФИТ И МАРЖИН
+    const finalData = {
+      ...values,
+      profit,
+      margin: Number(margin),
+    }
+    console.log("finalData", finalData)
 
-    const formData = new FormData()
-    Object.entries(values).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        formData.append(key, value.toString())
-      }
-    })
+    // const formData = new FormData()
+    // Object.entries(finalData).forEach(([key, value]) => {
+    //   if (value !== undefined && value !== null) {
+    //     formData.append(key, value.toString())
+    //   }
+    // })
 
-    await fetch("/api/products", {
-      method: "POST",
-      body: formData,
-    })
+    // await fetch("/api/products", {
+    //   method: "POST",
+    //   body: formData,
+    // })
 
-    setIsSubmitting(false)
-    router.push("/products")
+    // setIsSubmitting(false)
+    // router.push("/products")
+  }
+
+  const formatNumber = (value: number | string) => {
+    if (value === "" || value === null || value === undefined) return ""
+    const number = typeof value === "string" ? parseFloat(value) : value
+    if (isNaN(number)) return ""
+    return number.toLocaleString("uk-UA")
+  }
+
+  const parseNumber = (value: string) => {
+    return parseFloat(value.replace(/\s/g, "").replace(",", "."))
   }
 
   return (
@@ -170,7 +158,7 @@ export function ProductForm() {
             type="text"
             maxLength={MAX_TITLE}
             placeholder="Назва товару"
-            className="w-full rounded-md border border-[#E4E4E7] bg-white px-3 py-2.5 text-sm text-[#18181B] placeholder:text-[#A1A1AA] hover:border-[#2563EB] focus:border-[#2563EB] focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus-visible:ring-0 disabled:opacity-50"
+            className="w-full rounded-md border border-[#E4E4E7] bg-white px-3 py-2 text-sm text-[#18181B] placeholder:text-[#A1A1AA] hover:border-[#2563EB] focus:border-[#2563EB] focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus-visible:ring-0"
           />
         </div>
 
@@ -185,7 +173,7 @@ export function ProductForm() {
           <Textarea
             {...form.register("shortDescription")}
             maxLength={MAX_SHORT}
-            className="h-[98px] w-full rounded-md border border-[#E4E4E7] bg-white px-3 py-2 text-sm text-[#18181B] scrollbar-blue placeholder:text-[#A1A1AA] hover:border-[#2563EB] focus:border-[#2563EB] focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus-visible:ring-0 disabled:opacity-50"
+            className="h-[98px] w-full rounded-md border border-[#E4E4E7] bg-white px-3 py-2 text-sm text-[#18181B] scrollbar-blue placeholder:text-[#A1A1AA] hover:border-[#2563EB] focus:border-[#2563EB] focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus-visible:ring-0"
           />
         </div>
 
@@ -206,10 +194,14 @@ export function ProductForm() {
       </div>
 
       {/* Зображення */}
-      <div className="rounded-xl border bg-white p-6">
-        <h2 className="mb-4 font-semibold">Зображення</h2>
+      <div className="h-[208px] rounded-2xl border border-[#E4E4E7] bg-white p-4">
+        <h2 className="mb-6 text-lg font-semibold text-[#18181B]">
+          Зображення
+        </h2>
 
-        <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-10 text-center">
+        {/* ТУТ СДЕЛАТЬ ВОЗМЛЖНО ДРАГ ДРОП ФОТКИ НА ВСЁ ПОЛЕ. А НЕ ТОК НА КРОПКУ */}
+
+        <div className="box-border flex h-[124px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed bg-[#F8F9FB] p-8 text-center hover:border-none hover:bg-[#E2E2E2]">
           <input
             type="file"
             className="hidden"
@@ -223,12 +215,12 @@ export function ProductForm() {
           />
           <label
             htmlFor="image"
-            className="cursor-pointer rounded-md border bg-gray-100 px-4 py-2 hover:bg-gray-200"
+            className="box-border cursor-pointer rounded-md border border-[#E4E4E7] bg-white px-3 py-2 text-xs font-medium text-[#18181B] hover:bg-[#F8F9FB]"
           >
             Завантажити
           </label>
 
-          <p className="mt-4 text-sm text-muted-foreground">
+          <p className="mt-4 text-sm text-[#3F3F46]">
             Ви можете завантажити зображення до 10 Mb, відео до 100 Mb або медіа
             файли за посиланням
           </p>
@@ -238,49 +230,147 @@ export function ProductForm() {
       </div>
 
       {/* Ціни */}
-      <div className="space-y-6 rounded-xl border bg-white p-6">
-        <h2 className="font-semibold">Ціни</h2>
+      <div className="flex flex-col gap-4 rounded-2xl border border-[#E4E4E7] bg-white p-4">
+        <h2 className="text-lg font-semibold text-[#18181B]">Ціни</h2>
 
-        <div>
-          <label className="mb-1 block">Ціна</label>
-          <input
-            type="number"
-            step="0.01"
-            {...form.register("price")}
-            className="w-full rounded-md border p-2"
-          />
+        <div className="flex flex-col gap-2">
+          <label className="text-sm text-[#18181B]">Ціна</label>
+          <div className="relative w-full">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#18181B]">
+              ₴
+            </span>
+
+            <Controller
+              control={form.control}
+              name="price"
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0"
+                  className="w-full rounded-md border border-[#E4E4E7] bg-white py-2 pl-6 pr-3 text-sm text-[#18181B] placeholder:text-[#18181B] hover:border-[#2563EB] focus:border-[#2563EB] focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus-visible:ring-0 disabled:opacity-50"
+                  value={field.value ? formatNumber(field.value) : ""}
+                  onChange={(e) => {
+                    const raw = e.target.value
+                    const parsed = parseNumber(raw)
+
+                    field.onChange(isNaN(parsed) ? 0 : parsed)
+                  }}
+                />
+              )}
+            />
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <input type="checkbox" {...form.register("hasDiscount")} />
-          <label>Знижка</label>
+          <Controller
+            control={form.control}
+            name="hasDiscount"
+            render={({ field: { value, onChange, ...rest } }) => (
+              <Switch
+                checked={!!value}
+                onCheckedChange={(checked: boolean) => onChange(checked)}
+                id="hasDiscount"
+                className="data-[state=checked]:bg-[#2563EB]"
+                {...rest}
+              />
+            )}
+          />
+
+          <label className="text-sm font-medium text-[#18181B]">Знижка</label>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label>Собівартість</label>
-            <input
-              type="number"
-              {...form.register("costPrice")}
-              className="w-full rounded-md border p-2"
-            />
+        {watchHasDiscount && (
+          <div className="flex flex-col gap-2">
+            <label className="text-sm text-[#18181B]">Ціна зі знижкою</label>
+            <div className="relative w-full">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#18181B]">
+                ₴
+              </span>
+
+              <Controller
+                control={form.control}
+                name="discountPrice"
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="0"
+                    className="w-full rounded-md border border-[#E4E4E7] bg-white py-2 pl-6 pr-3 text-sm text-[#18181B] placeholder:text-[#18181B] hover:border-[#2563EB] focus:border-[#2563EB] focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus-visible:ring-0 disabled:opacity-50"
+                    value={field.value ? formatNumber(field.value) : ""}
+                    onChange={(e) => {
+                      const raw = e.target.value
+                      const parsed = parseNumber(raw)
+
+                      field.onChange(isNaN(parsed) ? 0 : parsed)
+                    }}
+                  />
+                )}
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-3 gap-2">
+          <div className="flex flex-col gap-2">
+            <label className="text-sm text-[#18181B]">Собівартість</label>
+            <div className="relative w-full">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#18181B]">
+                ₴
+              </span>
+
+              <Controller
+                control={form.control}
+                name="costPrice"
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="0"
+                    className="w-full rounded-md border border-[#E4E4E7] bg-white py-2 pl-6 pr-3 text-sm text-[#18181B] placeholder:text-[#18181B] hover:border-[#2563EB] focus:border-[#2563EB] focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus-visible:ring-0"
+                    value={field.value ? formatNumber(field.value) : ""}
+                    onChange={(e) => {
+                      const raw = e.target.value
+                      const parsed = parseNumber(raw)
+
+                      field.onChange(isNaN(parsed) ? 0 : parsed)
+                    }}
+                  />
+                )}
+              />
+            </div>
           </div>
 
-          <div>
-            <label>Прибуток</label>
-            <input
-              value={profit}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm text-[#18181B]">Прибуток</label>
+            <div className="relative w-full">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#A1A1AA]">
+                ₴
+              </span>
+
+              <Input
+                id="profit"
+                type="text"
+                disabled
+                placeholder="0"
+                className="w-full rounded-md border border-[#E4E4E7] bg-white py-2 pl-6 pr-3 text-sm placeholder:text-[#A1A1AA] disabled:text-[#A1A1AA]"
+                value={formatNumber(profit)}
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-sm text-[#18181B]">Маржа</label>
+            <Input
+              id="margin"
+              type="text"
               disabled
-              className="w-full rounded-md border bg-gray-100 p-2"
-            />
-          </div>
-
-          <div>
-            <label>Маржа</label>
-            <input
+              placeholder="0%"
+              className="w-full rounded-md border border-[#E4E4E7] bg-white py-2 pl-3 pr-3 text-sm placeholder:text-[#A1A1AA] disabled:text-[#A1A1AA]"
               value={`${margin}%`}
-              disabled
-              className="w-full rounded-md border bg-gray-100 p-2"
             />
           </div>
         </div>

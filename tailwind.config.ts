@@ -62,6 +62,17 @@ const config: Config = {
     require("tailwindcss-animate"),
     function ({ addUtilities }: { addUtilities: any }) {
       addUtilities({
+        ".no-number-arrows": {
+          appearance: "textfield",
+          "&::-webkit-outer-spin-button": {
+            appearance: "none",
+            margin: "0",
+          },
+          "&::-webkit-inner-spin-button": {
+            appearance: "none",
+            margin: "0",
+          },
+        },
         ".scrollbar-blue": {
           scrollbarWidth: "thin",
           scrollbarColor: "#2563eb transparent",
