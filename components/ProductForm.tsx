@@ -3,25 +3,57 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 
 import { useRouter } from "next/navigation"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useForm, Controller, useWatch } from "react-hook-form"
 import { z } from "zod"
 
-import { ArrowLeft, Loader2, Save } from "lucide-react"
+import { ArrowLeft, Loader2, Plus, Save, X } from "lucide-react"
 import { Input } from "./ui/input"
 import { Textarea } from "./ui/textarea"
 import { FormDescription } from "./FormDescription"
 import { Switch } from "./ui/switch"
 import { MoneyInput } from "./MoneyInput"
+import { Product } from "@prisma/client"
+import { cn } from "@/lib/utils"
+import Image from "next/image"
 
 const MAX_TITLE = 200
 const MAX_SHORT = 300
 const MAX_DESC = 5000
 
-function getPlainTextLength(html: string): number {
-  if (!html) return 0
-  const text = html.replace(/<[^>]*>/g, "")
-  return text.length
+const PREVIEW_SMALL_SLOTS_MAX = 7
+const PREVIEW_SMALL_SLOTS_MIN = 3
+
+/** Число маленьких слотов по брейкпоинту: 3 (мобильный) → 7 (xl), в духе Tailwind. Берём самый большой сработавший брейкпоинт. */
+function usePreviewSmallSlots(): number {
+  const [slots, setSlots] = useState(PREVIEW_SMALL_SLOTS_MIN)
+
+  useEffect(() => {
+    const media = [
+      { q: "(min-width: 1280px)", v: 7 },
+      { q: "(min-width: 1024px)", v: 6 },
+      { q: "(min-width: 768px)", v: 5 },
+      { q: "(min-width: 640px)", v: 4 },
+    ] as const
+    const mql = media.map(({ q }) => window.matchMedia(q))
+
+    const update = () => {
+      let v = PREVIEW_SMALL_SLOTS_MIN
+      for (let i = 0; i < mql.length; i++) {
+        if (mql[i].matches) {
+          v = media[i].v
+          break
+        }
+      }
+      setSlots(v)
+    }
+
+    update()
+    mql.forEach((m) => m.addEventListener("change", update))
+    return () => mql.forEach((m) => m.removeEventListener("change", update))
+  }, [])
+
+  return slots
 }
 
 const schema = z.object({
@@ -31,37 +63,41 @@ const schema = z.object({
   price: z.coerce.number().min(0),
   discountPrice: z.coerce.number().min(0).optional(),
   costPrice: z.coerce.number().min(0),
-
   hasDiscount: z.boolean().optional(),
-  image: z.any().optional(),
 })
 
 type FormValues = z.infer<typeof schema>
 
-export function ProductForm() {
-  const router = useRouter()
+type ProductFormProps = {
+  mode: "create" | "edit"
+  product?: Product
+}
+
+export function ProductForm({ mode, product }: ProductFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [preview, setPreview] = useState<string | null>(null)
+  const [images, setImages] = useState<File[]>([])
+  const [previews, setPreviews] = useState<string[]>([])
+  const [isDragging, setIsDragging] = useState(false)
+  const prevPreviewsRef = useRef<string[]>([])
+  const previewSmallSlots = usePreviewSmallSlots()
+  const previewTotalVisible = previewSmallSlots + 1
+
+  const router = useRouter()
+
+  // console.log("product", product)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      title: "",
-      shortDescription: "",
-      description: "",
-      price: 0,
-      discountPrice: 0,
-      costPrice: 0,
-      hasDiscount: false,
+      title: product?.title ?? "",
+      shortDescription: product?.shortDescription ?? "",
+      description: product?.description ?? "",
+      price: product?.price ?? 0,
+      discountPrice: product?.discountPrice ?? 0,
+      costPrice: product?.costPrice ?? 0,
+      hasDiscount: !!product?.discountPrice,
     },
   })
-
-  // const watchTitle = form.watch("title") || ""
-  // const watchShort = form.watch("shortDescription") || ""
-  // const watchDesc = form.watch("description") || ""
-  // const watchHasDiscount = form.watch("hasDiscount") || false
-  // const profit = watchPrice - watchCost
-  // const margin = watchPrice > 0 ? ((profit / watchPrice) * 100).toFixed(2) : 0
 
   const price = useWatch({ control: form.control, name: "price" }) ?? 0
   const cost = useWatch({ control: form.control, name: "costPrice" }) ?? 0
@@ -76,45 +112,83 @@ export function ProductForm() {
   const { profit, margin } = useMemo(() => {
     const profit = price - cost
     const margin = price > 0 ? Number(((profit / price) * 100).toFixed(2)) : 0
-
     return { profit, margin }
   }, [price, cost])
 
-  const onSubmit = async (values: FormValues) => {
-    // setIsSubmitting(true)
-
-    const finalData = {
-      ...values,
-      profit,
-      margin: Number(margin),
+  useEffect(() => {
+    const prev = prevPreviewsRef.current
+    prevPreviewsRef.current = previews
+    return () => {
+      prev.filter((url) => !previews.includes(url)).forEach(URL.revokeObjectURL)
     }
-    console.log("finalData", finalData)
+  }, [previews])
 
-    // const formData = new FormData()
-    // Object.entries(finalData).forEach(([key, value]) => {
-    //   if (value !== undefined && value !== null) {
-    //     formData.append(key, value.toString())
-    //   }
-    // })
+  useEffect(() => {
+    return () => {
+      prevPreviewsRef.current.forEach(URL.revokeObjectURL)
+    }
+  }, [])
 
-    // await fetch("/api/products", {
-    //   method: "POST",
-    //   body: formData,
-    // })
+  const handleFiles = (fileList: FileList) => {
+    const fileArray = Array.from(fileList)
 
-    // try {
-    //   const res = await fetch("/api/products", {
-    //     method: "POST",
-    //     body: formData,
-    //   })
-    //   if (!res.ok) throw new Error()
+    const validFiles = fileArray.filter(
+      (file) => file.type.startsWith("image/") && file.size <= 10 * 1024 * 1024
+    )
 
-    //   router.push("/products")
-    // } catch (err) {
-    //   console.error(err)
-    // } finally {
-    //   setIsSubmitting(false)
-    // }
+    const newPreviews = validFiles.map((file) => URL.createObjectURL(file))
+
+    setImages((prev) => [...prev, ...validFiles])
+    setPreviews((prev) => [...prev, ...newPreviews])
+  }
+
+  const removeImage = (index: number) => {
+    const urlToRevoke = previews[index]
+    setImages((prev) => prev.filter((_, i) => i !== index))
+    setPreviews((prev) => prev.filter((_, i) => i !== index))
+    // Revoke after React has committed update, so Image is no longer using this URL
+    if (urlToRevoke) {
+      queueMicrotask(() => URL.revokeObjectURL(urlToRevoke))
+    }
+  }
+
+  const onSubmit = async (values: FormValues) => {
+    setIsSubmitting(true)
+
+    const formData = new FormData()
+    Object.entries(values).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        formData.append(key, value.toString())
+      }
+    })
+
+    const url =
+      mode === "create" ? "/api/products" : `/api/products/${product?.id}`
+
+    images.forEach((file) => {
+      formData.append("images", file)
+    })
+
+    console.log("formData", formData)
+    console.log("images", images)
+
+    const method = mode === "create" ? "POST" : "PUT"
+
+    try {
+      const res = await fetch(url, {
+        method,
+        body: formData,
+      })
+      if (!res.ok) {
+        console.error(await res.text())
+      }
+
+      router.push("/products")
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const formatNumber = (value: number | string) => {
@@ -123,10 +197,6 @@ export function ProductForm() {
     if (isNaN(number)) return ""
     return number.toLocaleString("uk-UA")
   }
-
-  // const parseNumber = (value: string) => {
-  //   return parseFloat(value.replace(/\s/g, "").replace(",", "."))
-  // }
 
   return (
     <form
@@ -215,12 +285,11 @@ export function ProductForm() {
       </div>
 
       {/* Зображення */}
-      <div className="h-[208px] rounded-2xl border border-[#E4E4E7] bg-white p-4">
+      {/* <div className="h-[208px] rounded-2xl border border-[#E4E4E7] bg-white p-4">
         <h2 className="mb-6 text-lg font-semibold text-[#18181B]">
           Зображення
         </h2>
 
-        {/* ТУТ СДЕЛАТЬ ВОЗМЛЖНО ДРАГ ДРОП ФОТКИ НА ВСЁ ПОЛЕ. А НЕ ТОК НА КРОПКУ */}
 
         <div className="box-border flex h-[124px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed bg-[#F8F9FB] p-8 text-center hover:border-none hover:bg-[#E2E2E2]">
           <input
@@ -248,6 +317,175 @@ export function ProductForm() {
         </div>
 
         {preview && <img src={preview} className="mt-4 h-32 rounded-md" />}
+      </div> */}
+      <div
+        className={cn(
+          "h-[208px] rounded-2xl border border-[#E4E4E7] bg-white p-4",
+          previews.length > 0 && "h-full"
+        )}
+      >
+        <h2 className="mb-6 text-lg font-semibold text-[#18181B]">
+          Зображення
+        </h2>
+
+        {/* PREVIEW: 1 большая + одна сетка (миниатюры + overflow + кнопка), макс 2 ряда; размеры по брейкпоинтам */}
+        {previews.length > 0 ? (
+          <div className="flex gap-2 sm:flex sm:gap-2">
+            {/* Большое превью: 153 мобильный, 209 с md */}
+            <div className="group relative h-[153px] w-[153px] shrink-0 self-start rounded-xl border border-[#E4E4E7] sm:h-[180px] sm:w-[180px] md:h-[209px] md:w-[209px]">
+              <Image
+                src={previews[0]}
+                alt="Preview"
+                fill
+                className="rounded-xl object-contain"
+              />
+              <button
+                type="button"
+                onClick={() => removeImage(0)}
+                className="absolute right-1 top-1 rounded-full bg-[#2563EB] p-1 text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+              >
+                <X size={12} />
+              </button>
+            </div>
+
+            {/* Одна сетка: миниатюры + overflow (если есть) + кнопка; 4+ колонок = макс 2 ряда */}
+            <div className="flex flex-1 flex-col gap-2">
+              {(() => {
+                const hasOverflow = previews.length > previewTotalVisible
+                const overflowCount = hasOverflow
+                  ? previews.length - previewTotalVisible + 1
+                  : 0
+                const normalSmallCount =
+                  previews.length <= 1
+                    ? 0
+                    : hasOverflow
+                      ? previewSmallSlots - 1
+                      : Math.min(previewSmallSlots, previews.length - 1)
+                const smallPreviews = previews.slice(1, 1 + normalSmallCount)
+
+                return (
+                  <div
+                    className={cn(
+                      "grid gap-2",
+                      "grid-cols-[repeat(2,71px)] sm:grid-cols-[repeat(4,80px)] md:grid-cols-[repeat(5,90px)] lg:grid-cols-[repeat(6,100px)] xl:grid-cols-[repeat(7,100px)]"
+                    )}
+                  >
+                    {smallPreviews.map((src, index) => {
+                      const actualIndex = index + 1
+                      return (
+                        <div
+                          key={actualIndex}
+                          className="group relative aspect-square w-[71px] shrink-0 rounded-xl border border-[#E4E4E7] sm:w-[80px] sm:min-w-[80px] md:w-[90px] md:min-w-[90px] lg:w-[100px] lg:min-w-[100px]"
+                        >
+                          <Image
+                            src={src}
+                            alt="Preview"
+                            fill
+                            className="rounded-xl object-contain"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(actualIndex)}
+                            className="absolute right-1 top-1 rounded-full bg-[#2563EB] p-[2px] text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      )
+                    })}
+                    {hasOverflow && (
+                      <div
+                        className="relative aspect-square w-[71px] shrink-0 overflow-hidden rounded-xl border border-[#E4E4E7] sm:w-[80px] md:w-[90px] lg:w-[100px]"
+                        title={`Ще ${overflowCount} фото`}
+                      >
+                        <Image
+                          src={previews[previews.length - 1]}
+                          alt="Preview"
+                          fill
+                          className="rounded-xl object-cover brightness-50"
+                        />
+                        <span className="absolute inset-0 flex items-center justify-center text-base font-semibold text-white drop-shadow-md sm:text-lg">
+                          +{overflowCount}
+                        </span>
+                      </div>
+                    )}
+                    <div
+                      className={cn(
+                        "flex aspect-square w-[71px] shrink-0 cursor-pointer items-center justify-center rounded-xl border border-dashed border-[#E4E4E7] bg-[#F8F9FB] hover:bg-[#E2E2E2] sm:w-[80px] md:w-[90px] lg:w-[100px]",
+                        isDragging && "bg-[#E2E2E2]"
+                      )}
+                      onDragOver={(e) => {
+                        e.preventDefault()
+                        setIsDragging(true)
+                      }}
+                      onDragLeave={() => setIsDragging(false)}
+                      onDrop={(e) => {
+                        e.preventDefault()
+                        setIsDragging(false)
+                        handleFiles(e.dataTransfer.files)
+                      }}
+                    >
+                      <label
+                        htmlFor="images"
+                        className="flex h-full w-full cursor-pointer items-center justify-center"
+                      >
+                        <Plus size={28} className="text-[#3F3F46] sm:size-8" />
+                      </label>
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        className="hidden"
+                        id="images"
+                        onChange={(e) =>
+                          e.target.files && handleFiles(e.target.files)
+                        }
+                      />
+                    </div>
+                  </div>
+                )
+              })()}
+            </div>
+          </div>
+        ) : (
+          <div
+            onDragOver={(e) => {
+              e.preventDefault()
+              setIsDragging(true)
+            }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={(e) => {
+              e.preventDefault()
+              setIsDragging(false)
+              handleFiles(e.dataTransfer.files)
+            }}
+            className={cn(
+              "box-border flex h-[124px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed bg-[#F8F9FB] p-8 text-center hover:border-none hover:bg-[#E2E2E2]",
+              isDragging && "bg-[#E2E2E2]"
+            )}
+          >
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              className="hidden"
+              id="images"
+              onChange={(e) => e.target.files && handleFiles(e.target.files)}
+            />
+
+            <label
+              htmlFor="images"
+              className="box-border cursor-pointer rounded-md border border-[#E4E4E7] bg-white px-3 py-2 text-xs font-medium text-[#18181B] hover:bg-[#F8F9FB]"
+            >
+              Завантажити
+            </label>
+
+            <p className="text-sm text-[#3F3F46]">
+              Ви можете завантажити зображення до 10 Mb, відео до 100 Mb або
+              медіа файли за посиланням
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Ціни */}
@@ -262,27 +500,6 @@ export function ProductForm() {
             </span>
 
             <MoneyInput name="price" control={form.control} />
-
-            {/* <Controller
-              control={form.control}
-              name="price"
-              render={({ field }) => (
-                <Input
-                  {...field}
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="0"
-                  className="w-full rounded-md border border-[#E4E4E7] bg-white py-2 pl-6 pr-3 text-sm text-[#18181B] placeholder:text-[#18181B] hover:border-[#2563EB] focus:border-[#2563EB] focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus-visible:ring-0 disabled:opacity-50"
-                  value={field.value ? formatNumber(field.value) : ""}
-                  onChange={(e) => {
-                    const raw = e.target.value
-                    const parsed = parseNumber(raw)
-
-                    field.onChange(isNaN(parsed) ? 0 : parsed)
-                  }}
-                />
-              )}
-            /> */}
           </div>
         </div>
 
@@ -313,27 +530,6 @@ export function ProductForm() {
               </span>
 
               <MoneyInput name="discountPrice" control={form.control} />
-
-              {/* <Controller
-                control={form.control}
-                name="discountPrice"
-                render={({ field }) => (
-                  <Input
-                    {...field}
-                    type="text"
-                    inputMode="decimal"
-                    placeholder="0"
-                    className="w-full rounded-md border border-[#E4E4E7] bg-white py-2 pl-6 pr-3 text-sm text-[#18181B] placeholder:text-[#18181B] hover:border-[#2563EB] focus:border-[#2563EB] focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus-visible:ring-0 disabled:opacity-50"
-                    value={field.value ? formatNumber(field.value) : ""}
-                    onChange={(e) => {
-                      const raw = e.target.value
-                      const parsed = parseNumber(raw)
-
-                      field.onChange(isNaN(parsed) ? 0 : parsed)
-                    }}
-                  />
-                )}
-              /> */}
             </div>
           </div>
         )}
@@ -347,27 +543,6 @@ export function ProductForm() {
               </span>
 
               <MoneyInput name="costPrice" control={form.control} />
-
-              {/* <Controller
-                control={form.control}
-                name="costPrice"
-                render={({ field }) => (
-                  <Input
-                    {...field}
-                    type="text"
-                    inputMode="decimal"
-                    placeholder="0"
-                    className="w-full rounded-md border border-[#E4E4E7] bg-white py-2 pl-6 pr-3 text-sm text-[#18181B] placeholder:text-[#18181B] hover:border-[#2563EB] focus:border-[#2563EB] focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus-visible:ring-0"
-                    value={field.value ? formatNumber(field.value) : ""}
-                    onChange={(e) => {
-                      const raw = e.target.value
-                      const parsed = parseNumber(raw)
-
-                      field.onChange(isNaN(parsed) ? 0 : parsed)
-                    }}
-                  />
-                )}
-              /> */}
             </div>
           </div>
 

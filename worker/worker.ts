@@ -1,94 +1,78 @@
-import { Worker } from 'bullmq'
-import Redis from 'ioredis'
-import { resizeImage, IMAGE_SIZES } from '../lib/image'
-import { prisma } from '../lib/prisma'
-import path from 'path'
-import { promises as fs } from 'fs'
+import { Worker } from "bullmq"
+import Redis from "ioredis"
+import { resizeImage, IMAGE_SIZES } from "../lib/image"
+import { prisma } from "../lib/prisma"
+import path from "path"
+import { promises as fs } from "fs"
 
-const connection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379')
+const connection = new Redis(process.env.REDIS_URL || "redis://redis:6379")
 
 const worker = new Worker(
-  'image-processing',
+  "image-processing",
   async (job) => {
-    const { originalPath, filename } = job.data
+    const { productId, originalPath, filename } = job.data
 
-    console.log(`Processing image: ${filename}`)
+    console.log(`Processing image for product ${productId}`)
+
+    const sizes = ["small", "medium", "large"] as const
 
     try {
-      // Generate all sizes
-      const sizes = ['small', 'medium', 'large'] as const
-
       for (const size of sizes) {
         const outputPath = path.join(
           process.cwd(),
-          'public',
-          'uploads',
+          "public",
+          "uploads",
           size,
           filename
         )
 
         await resizeImage(originalPath, outputPath, IMAGE_SIZES[size])
-
-        console.log(`Generated ${size} image: ${filename}`)
       }
 
-      // Update product with image paths
-      const imageOriginal = `/uploads/original/${filename}`
-      const imageSmall = `/uploads/small/${filename}`
-      const imageMedium = `/uploads/medium/${filename}`
-      const imageLarge = `/uploads/large/${filename}`
+      // удаляем оригинал
+      await fs.unlink(originalPath)
 
-      // Find product by original image path
-      const product = await prisma.product.findFirst({
-        where: { imageOriginal },
+      await prisma.product.update({
+        where: { id: productId },
+        data: {
+          imageSmall: `/uploads/small/${filename}`,
+          imageMedium: `/uploads/medium/${filename}`,
+          imageLarge: `/uploads/large/${filename}`,
+        },
       })
 
-      if (product) {
-        await prisma.product.update({
-          where: { id: product.id },
-          data: {
-            imageSmall,
-            imageMedium,
-            imageLarge,
-          },
-        })
-
-        console.log(`Updated product ${product.id} with image paths`)
-      } else {
-        console.warn(`Product not found for image: ${imageOriginal}`)
-      }
+      console.log(`Product ${productId} updated`)
     } catch (error) {
-      console.error(`Error processing image ${filename}:`, error)
+      console.error("Image processing failed:", error)
       throw error
     }
   },
   {
     connection,
-    concurrency: 2, // Process 2 images at a time
+    concurrency: 3,
   }
 )
 
-worker.on('completed', (job) => {
+worker.on("completed", (job) => {
   console.log(`Job ${job.id} completed`)
 })
 
-worker.on('failed', (job, err) => {
+worker.on("failed", (job, err) => {
   console.error(`Job ${job?.id} failed:`, err)
 })
 
-console.log('Image processing worker started')
-
-// Graceful shutdown
-process.on('SIGTERM', async () => {
-  console.log('SIGTERM received, closing worker...')
+process.on("SIGTERM", async () => {
+  console.log("Graceful shutdown...")
   await worker.close()
   await connection.quit()
   process.exit(0)
 })
 
-process.on('SIGINT', async () => {
-  console.log('SIGINT received, closing worker...')
+process.on("SIGINT", async () => {
+  console.log("Graceful shutdown...")
   await worker.close()
   await connection.quit()
   process.exit(0)
 })
+
+console.log("Image worker started")

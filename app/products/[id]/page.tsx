@@ -1,3 +1,4 @@
+import { ProductForm } from "@/components/ProductForm"
 import { prisma } from "@/lib/prisma"
 import Image from "next/image"
 import { notFound } from "next/navigation"

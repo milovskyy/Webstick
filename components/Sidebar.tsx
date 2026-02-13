@@ -61,9 +61,10 @@ export function Sidebar() {
 
   return (
     <aside
-      className={`${
+      className={cn(
+        "hidden flex-col bg-[#F8F9FB] text-sm text-white transition-all duration-300 xl:flex",
         isCollapsed ? "w-[72px]" : "w-64"
-      } flex flex-col bg-[#F8F9FB] text-sm text-white transition-all duration-300`}
+      )}
     >
       <div
         className={cn(
