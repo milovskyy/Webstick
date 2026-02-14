@@ -16,45 +16,11 @@ import { MoneyInput } from "./MoneyInput"
 import { Product } from "@prisma/client"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
+import { usePreviewSmallSlots } from "@/hooks/usePreviewSmallSlots"
 
 const MAX_TITLE = 200
 const MAX_SHORT = 300
 const MAX_DESC = 5000
-
-const PREVIEW_SMALL_SLOTS_MAX = 7
-const PREVIEW_SMALL_SLOTS_MIN = 3
-
-/** Число маленьких слотов по брейкпоинту: 3 (мобильный) → 7 (xl), в духе Tailwind. Берём самый большой сработавший брейкпоинт. */
-function usePreviewSmallSlots(): number {
-  const [slots, setSlots] = useState(PREVIEW_SMALL_SLOTS_MIN)
-
-  useEffect(() => {
-    const media = [
-      { q: "(min-width: 1280px)", v: 7 },
-      { q: "(min-width: 1024px)", v: 6 },
-      { q: "(min-width: 768px)", v: 5 },
-      { q: "(min-width: 640px)", v: 4 },
-    ] as const
-    const mql = media.map(({ q }) => window.matchMedia(q))
-
-    const update = () => {
-      let v = PREVIEW_SMALL_SLOTS_MIN
-      for (let i = 0; i < mql.length; i++) {
-        if (mql[i].matches) {
-          v = media[i].v
-          break
-        }
-      }
-      setSlots(v)
-    }
-
-    update()
-    mql.forEach((m) => m.addEventListener("change", update))
-    return () => mql.forEach((m) => m.removeEventListener("change", update))
-  }, [])
-
-  return slots
-}
 
 const schema = z.object({
   title: z.string().min(1).max(MAX_TITLE),
@@ -75,6 +41,7 @@ type ProductFormProps = {
 
 export function ProductForm({ mode, product }: ProductFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const [images, setImages] = useState<File[]>([])
   const [previews, setPreviews] = useState<string[]>([])
   const [isDragging, setIsDragging] = useState(false)
@@ -83,8 +50,6 @@ export function ProductForm({ mode, product }: ProductFormProps) {
   const previewTotalVisible = previewSmallSlots + 1
 
   const router = useRouter()
-
-  // console.log("product", product)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -154,6 +119,7 @@ export function ProductForm({ mode, product }: ProductFormProps) {
 
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true)
+    setSubmitError(null)
 
     const formData = new FormData()
     Object.entries(values).forEach(([key, value]) => {
@@ -179,13 +145,23 @@ export function ProductForm({ mode, product }: ProductFormProps) {
         method,
         body: formData,
       })
+      const text = await res.text()
       if (!res.ok) {
-        console.error(await res.text())
+        let errMsg = text
+        try {
+          const j = JSON.parse(text)
+          errMsg = j.error || text
+        } catch {
+          // use text as is
+        }
+        setSubmitError(errMsg)
+        return
       }
-
       router.push("/products")
+      router.refresh()
     } catch (err) {
       console.error(err)
+      setSubmitError(err instanceof Error ? err.message : "Помилка мережі")
     } finally {
       setIsSubmitting(false)
     }
@@ -203,6 +179,16 @@ export function ProductForm({ mode, product }: ProductFormProps) {
       onSubmit={form.handleSubmit(onSubmit)}
       className="flex h-full w-[1090px] flex-col gap-4"
     >
+      {(Object.keys(form.formState.errors).length > 0 || submitError) && (
+        <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+          {submitError && <p>{submitError}</p>}
+          {Object.entries(form.formState.errors).map(([name, e]) => (
+            <div key={name}>
+              {name}: {e?.message}
+            </div>
+          ))}
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div
@@ -285,39 +271,7 @@ export function ProductForm({ mode, product }: ProductFormProps) {
       </div>
 
       {/* Зображення */}
-      {/* <div className="h-[208px] rounded-2xl border border-[#E4E4E7] bg-white p-4">
-        <h2 className="mb-6 text-lg font-semibold text-[#18181B]">
-          Зображення
-        </h2>
 
-
-        <div className="box-border flex h-[124px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed bg-[#F8F9FB] p-8 text-center hover:border-none hover:bg-[#E2E2E2]">
-          <input
-            type="file"
-            className="hidden"
-            id="image"
-            onChange={(e) => {
-              const file = e.target.files?.[0]
-              if (file) {
-                setPreview(URL.createObjectURL(file))
-              }
-            }}
-          />
-          <label
-            htmlFor="image"
-            className="box-border cursor-pointer rounded-md border border-[#E4E4E7] bg-white px-3 py-2 text-xs font-medium text-[#18181B] hover:bg-[#F8F9FB]"
-          >
-            Завантажити
-          </label>
-
-          <p className="mt-4 text-sm text-[#3F3F46]">
-            Ви можете завантажити зображення до 10 Mb, відео до 100 Mb або медіа
-            файли за посиланням
-          </p>
-        </div>
-
-        {preview && <img src={preview} className="mt-4 h-32 rounded-md" />}
-      </div> */}
       <div
         className={cn(
           "h-[208px] rounded-2xl border border-[#E4E4E7] bg-white p-4",

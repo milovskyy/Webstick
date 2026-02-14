@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
+import { revalidatePath } from "next/cache"
 import { prisma } from "@/lib/prisma"
-import { imageQueue } from "@/lib/queue"
-import { saveUploadedFile } from "@/lib/upload"
+import fs from "fs/promises"
+import { randomUUID } from "crypto"
+import path from "path"
+
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024 // 10MB
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,6 +21,7 @@ export async function GET(request: NextRequest) {
         orderBy: { createdAt: "desc" },
         skip,
         take: perPage,
+        include: { images: true },
       }),
       prisma.product.count(),
     ])
@@ -43,148 +48,100 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
 
-    const title = formData.get("title") as string
-    const shortDescription = formData.get("shortDescription") as string
-    const description = formData.get("description") as string
-    const price = parseFloat(formData.get("price") as string)
-    const costPrice = parseFloat(formData.get("costPrice") as string)
-    const discountPrice = parseFloat(formData.get("discountPrice") as string)
-    const imageFile = formData.get("image") as File | null
-    const images = formData.getAll("image") as File[]
+    const title = (formData.get("title") as string)?.trim()
+    const shortDescription =
+      (formData.get("shortDescription") as string)?.trim() || null
+    const description = (formData.get("description") as string)?.trim() || null
+    const price = Number(formData.get("price"))
+    const costPrice = Number(formData.get("costPrice")) || 0
+    const discountPriceRaw = formData.get("discountPrice")
+    const discountPrice =
+      discountPriceRaw !== null &&
+      discountPriceRaw !== undefined &&
+      String(discountPriceRaw).trim() !== ""
+        ? Number(discountPriceRaw)
+        : null
 
-    if (!title || isNaN(price)) {
+    const imagesRaw = formData.getAll("images")
+    const images = imagesRaw.filter(
+      (f): f is File => f instanceof File && f.size > 0
+    )
+
+    if (!title || title.length === 0) {
+      return NextResponse.json({ error: "Назва обов'язкова" }, { status: 400 })
+    }
+    if (isNaN(price) || price < 0) {
       return NextResponse.json(
-        { error: "Title and price are required" },
+        { error: "Коректна ціна обов'язкова" },
         { status: 400 }
       )
     }
 
-    // 1️⃣ Сначала создаём продукт без картинок
+    for (const file of images) {
+      if (!file.type.startsWith("image/")) {
+        return NextResponse.json(
+          { error: "Дозволені лише зображення" },
+          { status: 400 }
+        )
+      }
+      if (file.size > MAX_IMAGE_SIZE) {
+        return NextResponse.json(
+          { error: "Розмір зображення не більше 10 МБ" },
+          { status: 400 }
+        )
+      }
+    }
+
     const product = await prisma.product.create({
       data: {
         title,
-        shortDescription: shortDescription || null,
-        description: description || null,
+        shortDescription,
+        description,
         price,
-        costPrice,
+        costPrice: isNaN(costPrice) ? 0 : costPrice,
         discountPrice,
       },
     })
 
-    // 2️⃣ Если есть изображение — сохраняем и запускаем очередь
-    if (imageFile && imageFile.size > 0) {
-      const { filename, originalPath } = await saveUploadedFile(imageFile)
+    const uploadBase = path.join(
+      process.cwd(),
+      "public",
+      "uploads",
+      "products",
+      product.id
+    )
 
-      await imageQueue.add(
-        "resize-image",
-        {
+    for (const file of images) {
+      const bytes = await file.arrayBuffer()
+      const buffer = Buffer.from(bytes)
+
+      const ext =
+        file.name && /\.\w+$/.test(file.name)
+          ? path.extname(file.name).toLowerCase()
+          : ".jpg"
+      const fileName =
+        randomUUID() + (ext === ".jpg" || ext === ".jpeg" ? ".jpg" : ext)
+
+      const originalDir = path.join(uploadBase, "original")
+      await fs.mkdir(originalDir, { recursive: true })
+
+      const filePath = path.join(originalDir, fileName)
+      await fs.writeFile(filePath, buffer)
+
+      await prisma.productImage.create({
+        data: {
           productId: product.id,
-          originalPath,
-          filename,
+          original: `/uploads/products/${product.id}/original/${fileName}`,
         },
-        {
-          attempts: 5,
-          backoff: {
-            type: "exponential",
-            delay: 2000,
-          },
-          removeOnComplete: true,
-          removeOnFail: false,
-        }
-      )
+      })
     }
 
+    revalidatePath("/products")
     return NextResponse.json(product, { status: 201 })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error creating product:", error)
-
-    return NextResponse.json(
-      { error: error.message || "Failed to create product" },
-      { status: 500 }
-    )
+    const message =
+      error instanceof Error ? error.message : "Failed to create product"
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
-
-// import { NextRequest, NextResponse } from "next/server"
-// import { prisma } from "@/lib/prisma"
-// import { imageQueue } from "@/lib/queue"
-// import { ensureUploadDirs } from "@/lib/image"
-// import { writeFile } from "fs/promises"
-// import path from "path"
-
-// export async function GET() {
-//   try {
-//     const products = await prisma.product.findMany({
-//       orderBy: { createdAt: "desc" },
-//     })
-//     return NextResponse.json(products)
-//   } catch (error) {
-//     console.error("Error fetching products:", error)
-//     return NextResponse.json(
-//       { error: "Failed to fetch products" },
-//       { status: 500 }
-//     )
-//   }
-// }
-
-// export async function POST(request: NextRequest) {
-//   try {
-//     const formData = await request.formData()
-//     const title = formData.get("title") as string
-//     const shortDescription = formData.get("shortDescription") as string
-//     const description = formData.get("description") as string
-//     const price = parseFloat(formData.get("price") as string)
-//     const imageFile = formData.get("image") as File | null
-
-//     if (!title || isNaN(price)) {
-//       return NextResponse.json(
-//         { error: "Title and price are required" },
-//         { status: 400 }
-//       )
-//     }
-
-//     let imageOriginal: string | null = null
-
-//     if (imageFile && imageFile.size > 0) {
-//       await ensureUploadDirs()
-
-//       const bytes = await imageFile.arrayBuffer()
-//       const buffer = Buffer.from(bytes)
-//       const filename = `${Date.now()}-${imageFile.name}`
-//       const originalPath = path.join(
-//         process.cwd(),
-//         "public",
-//         "uploads",
-//         "original",
-//         filename
-//       )
-
-//       await writeFile(originalPath, buffer)
-//       imageOriginal = `/uploads/original/${filename}`
-
-//       // Enqueue image processing job
-//       await imageQueue.add("resize-image", {
-//         originalPath,
-//         filename,
-//       })
-//     }
-
-//     const product = await prisma.product.create({
-//       data: {
-//         title,
-//         shortDescription: shortDescription || null,
-//         description: description || null,
-//         price,
-//         imageOriginal,
-//       },
-//     })
-
-//     return NextResponse.json(product, { status: 201 })
-//   } catch (error) {
-//     console.error("Error creating product:", error)
-//     return NextResponse.json(
-//       { error: "Failed to create product" },
-//       { status: 500 }
-//     )
-//   }
-// }

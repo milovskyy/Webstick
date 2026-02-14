@@ -2,8 +2,17 @@
 const nextConfig = {
   images: {
     remotePatterns: [],
+    domains: [],
   },
-  output: 'standalone',
+  output: "standalone",
+  async rewrites() {
+    return [
+      {
+        source: "/uploads/:path*",
+        destination: "/uploads/:path*",
+      },
+    ]
+  },
 }
 
 module.exports = nextConfig

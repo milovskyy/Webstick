@@ -5,9 +5,14 @@ import { FiPlus } from "react-icons/fi"
 
 async function getProducts() {
   try {
-    return await prisma.product.findMany({
+    const rows = await prisma.product.findMany({
       orderBy: { createdAt: "desc" },
+      include: { images: true },
     })
+    return rows.map((p) => ({
+      ...p,
+      imageSmall: p.images[0]?.small ?? p.images[0]?.medium ?? p.images[0]?.original ?? null,
+    }))
   } catch (error) {
     console.error("Error fetching products:", error)
     return []

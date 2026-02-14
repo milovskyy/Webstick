@@ -38,6 +38,8 @@ export function ProductsList({ products }: Props) {
   const [productToDelete, setProductToDelete] = useState<Product | null>(null)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 
+  console.log("products", products)
+
   const [query, setQuery] = useState("")
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
@@ -73,9 +75,19 @@ export function ProductsList({ products }: Props) {
 
   const handleConfirmDelete = async (id: string) => {
     console.log("delete", id)
-    // await deleteProduct(id);
-    // setIsDeleteModalOpen(false);
-    // setProductToDelete(null);
+    try {
+      const res = await fetch(`/api/products/${id}`, { method: "DELETE" })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        console.error("Delete failed:", data.error || res.statusText)
+        return
+      }
+      setIsDeleteModalOpen(false)
+      setProductToDelete(null)
+      window.location.reload()
+    } catch (e) {
+      console.error("Delete failed:", e)
+    }
   }
 
   useEffect(() => {
@@ -139,113 +151,34 @@ export function ProductsList({ products }: Props) {
               </p>
             </div>
           ) : (
-            <div
-              id="products-grid"
-              className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-              role="list"
-            >
+            <div id="products-grid" className="flex flex-col" role="list">
               {paginatedProducts.map((product) => (
-                <Link
+                <ProductRow
                   key={product.id}
-                  href={`/products/${product.id}`}
-                  className="relative h-10 w-full overflow-hidden rounded-lg bg-white shadow transition-shadow hover:shadow-lg"
-                  role="listitem"
-                >
-                  <div className="relative h-48 w-full bg-gray-200">
-                    {product.imageSmall ? (
-                      <Image
-                        src={product.imageSmall}
-                        alt={product.title}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-gray-400">
-                        Немає зображення
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-4">
-                    <h3 className="mb-1 line-clamp-2 text-lg font-semibold">
-                      {product.title}
-                    </h3>
-                    {product.shortDescription && (
-                      <p className="mb-2 line-clamp-2 text-sm text-gray-600">
-                        {product.shortDescription}
-                      </p>
-                    )}
-                    <p className="text-xl font-bold text-blue-600">
-                      {product.price.toFixed(2)} ₴
-                    </p>
-                  </div>
-                </Link>
+                  product={product}
+                  onDelete={() => handleDeleteClick(product)}
+                />
               ))}
             </div>
           )
         ) : products.length === 0 ? (
-          // <div className="py-12 text-center">
-          //   <p className="mb-4 text-gray-500">Немає товарів</p>
-          //   <Link
-          //     href="/products/new"
-          //     className="text-blue-600 hover:underline"
-          //   >
-          //     Створити перший товар
-          //   </Link>
-          // </div>
-          <ProductRow
-            onDelete={() =>
-              handleDeleteClick({
-                id: "33",
-                title: "Product 33",
-                shortDescription: "Product 33 description",
-                price: 100,
-                imageSmall: "/productrow-image-test.png",
-              })
-            }
-          />
+          <div className="flex flex-1 flex-col items-center justify-center py-12 text-center">
+            <p className="mb-2 text-sm text-gray-500">Немає товарів</p>
+            <Link
+              href="/products/new"
+              className="text-blue-600 hover:underline"
+            >
+              Створити перший товар
+            </Link>
+          </div>
         ) : (
-          <div
-            id="products-grid"
-            className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-            role="list"
-          >
+          <div id="products-grid" className="flex flex-col" role="list">
             {paginatedProducts.map((product) => (
-              <Link
+              <ProductRow
                 key={product.id}
-                href={`/products/${product.id}`}
-                className="overflow-hidden rounded-lg bg-white shadow transition-shadow hover:shadow-lg"
-                role="listitem"
-              >
-                <div className="relative h-48 w-full bg-gray-200">
-                  {product.imageSmall ? (
-                    <Image
-                      src={product.imageSmall}
-                      alt={product.title}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-gray-400">
-                      Немає зображення
-                    </div>
-                  )}
-                </div>
-                <div className="p-4">
-                  <h3 className="mb-1 line-clamp-2 text-lg font-semibold">
-                    {product.title}
-                  </h3>
-                  {product.shortDescription && (
-                    <p className="mb-2 line-clamp-2 text-sm text-gray-600">
-                      {product.shortDescription}
-                    </p>
-                  )}
-                  <p className="text-xl font-bold text-blue-600">
-                    {product.price.toFixed(2)} ₴
-                  </p>
-                </div>
-              </Link>
+                product={product}
+                onDelete={() => handleDeleteClick(product)}
+              />
             ))}
           </div>
         )}

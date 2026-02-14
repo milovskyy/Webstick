@@ -76,19 +76,14 @@ export function Sidebar() {
         )}
       >
         {isCollapsed ? (
-          <>
-            <button onClick={toggleSidebar} aria-label="Toggle sidebar">
-              <Image
-                src="/Biksico-mini.png"
-                alt="logo"
-                width={35}
-                height={45}
-              />
-            </button>
-          </>
+          <button onClick={toggleSidebar} aria-label="Toggle sidebar">
+            <Image src="/Biksico-mini.png" alt="logo" width={35} height={45} />
+          </button>
         ) : (
           <div className="flex w-full justify-between">
-            <Image src="/Biksico.png" alt="logo" width={103} height={29} />
+            <Link href={`/`}>
+              <Image src="/Biksico.png" alt="logo" width={103} height={29} />
+            </Link>
             <button
               onClick={toggleSidebar}
               className="ml-2 flex items-center justify-center rounded p-[6px] text-[#3F3F46] transition-colors hover:bg-[#E4E4E7]"

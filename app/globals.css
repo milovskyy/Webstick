@@ -47,6 +47,7 @@
 
 .ProseMirror img {
   max-width: 272px;
+  max-height: 272px;
   border-radius: 8px;
   margin: 8px 0;
 }

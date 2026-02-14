@@ -28,14 +28,14 @@ export function DeleteProductModal({
 }: Props) {
   const [isLoading, setIsLoading] = useState(false)
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     setIsLoading(!isLoading)
 
-    // try {
-    //   onConfirm()
-    // } finally {
-    //   setIsLoading(false)
-    // }
+    try {
+      onConfirm()
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
