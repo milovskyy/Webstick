@@ -5,7 +5,8 @@ import fs from "fs/promises"
 import { randomUUID } from "crypto"
 import path from "path"
 
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024 // 10MB
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024 // 10MB per image
+const MAX_VIDEO_SIZE = 100 * 1024 * 1024 // 100MB per video
 
 export async function GET(request: NextRequest) {
   try {
@@ -78,15 +79,23 @@ export async function POST(request: NextRequest) {
     }
 
     for (const file of images) {
-      if (!file.type.startsWith("image/")) {
+      const isImage = file.type.startsWith("image/")
+      const isVideo = file.type.startsWith("video/")
+      if (!isImage && !isVideo) {
         return NextResponse.json(
-          { error: "Дозволені лише зображення" },
+          { error: "Дозволені лише зображення та відео" },
           { status: 400 }
         )
       }
-      if (file.size > MAX_IMAGE_SIZE) {
+      if (isImage && file.size > MAX_IMAGE_SIZE) {
         return NextResponse.json(
           { error: "Розмір зображення не більше 10 МБ" },
+          { status: 400 }
+        )
+      }
+      if (isVideo && file.size > MAX_VIDEO_SIZE) {
+        return NextResponse.json(
+          { error: "Розмір відео не більше 100 МБ" },
           { status: 400 }
         )
       }

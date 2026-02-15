@@ -36,7 +36,7 @@ export function ProductsPagination({
   const isLastPage = totalPages <= 0 || currentPage >= totalPages
 
   return (
-    <div className="flex w-full flex-wrap items-center justify-end gap-12">
+    <div className="mt-auto flex w-full flex-wrap items-center justify-end gap-12">
       <div className="flex items-center gap-2">
         <span className="text-sm text-[#3F3F46]">Рядки на сторінці</span>
 
@@ -56,7 +56,7 @@ export function ProductsPagination({
         </Select>
       </div>
 
-      <div className="text-sm text-[#3F3F46]">
+      <div className="w-[102px] text-center text-sm text-[#3F3F46]">
         Сторінки {currentPage} з {totalPages || 1}
       </div>
 

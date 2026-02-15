@@ -14,13 +14,18 @@ import { FormDescription } from "./FormDescription"
 import { Switch } from "./ui/switch"
 import { MoneyInput } from "./MoneyInput"
 import { Product } from "@prisma/client"
+import { isVideoUrl } from "@/lib/media"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { usePreviewSmallSlots } from "@/hooks/usePreviewSmallSlots"
+import { FiTrash2 } from "react-icons/fi"
 
 const MAX_TITLE = 200
 const MAX_SHORT = 300
 const MAX_DESC = 5000
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024 // 10MB per image
+const MAX_VIDEO_SIZE = 100 * 1024 * 1024 // 100MB per video
+const ACCEPT_MEDIA = "image/*,video/*"
 
 const schema = z.object({
   title: z.string().min(1).max(MAX_TITLE),
@@ -34,9 +39,17 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 
+type ProductImage = {
+  id: string
+  original: string
+  small?: string | null
+  medium?: string | null
+  large?: string | null
+}
+
 type ProductFormProps = {
   mode: "create" | "edit"
-  product?: Product
+  product?: Product & { images?: ProductImage[] }
 }
 
 export function ProductForm({ mode, product }: ProductFormProps) {
@@ -44,6 +57,7 @@ export function ProductForm({ mode, product }: ProductFormProps) {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [images, setImages] = useState<File[]>([])
   const [previews, setPreviews] = useState<string[]>([])
+  const [removedExistingIds, setRemovedExistingIds] = useState<string[]>([])
   const [isDragging, setIsDragging] = useState(false)
   const prevPreviewsRef = useRef<string[]>([])
   const previewSmallSlots = usePreviewSmallSlots()
@@ -80,6 +94,34 @@ export function ProductForm({ mode, product }: ProductFormProps) {
     return { profit, margin }
   }, [price, cost])
 
+  const existingMedia = useMemo(() => {
+    if (!product?.images?.length) return []
+    return product.images.map((img) => {
+      const url = img.small ?? img.medium ?? img.large ?? img.original
+      return { id: img.id, url, isVideo: isVideoUrl(img.original) }
+    })
+  }, [product?.id, product?.images])
+
+  const combinedList = useMemo(() => {
+    const existing = existingMedia
+      .filter((e) => !removedExistingIds.includes(e.id))
+      .map((e) => ({
+        key: e.id,
+        id: e.id,
+        url: e.url,
+        isVideo: e.isVideo,
+        isNew: false as const,
+      }))
+    const newItems = previews.map((url, i) => ({
+      key: `new-${i}`,
+      url,
+      isVideo: images[i]?.type.startsWith("video/") ?? false,
+      isNew: true as const,
+      newIndex: i,
+    }))
+    return [...existing, ...newItems]
+  }, [existingMedia, removedExistingIds, previews, images])
+
   useEffect(() => {
     const prev = prevPreviewsRef.current
     prevPreviewsRef.current = previews
@@ -95,26 +137,44 @@ export function ProductForm({ mode, product }: ProductFormProps) {
   }, [])
 
   const handleFiles = (fileList: FileList) => {
+    console.log("fileList", fileList)
     const fileArray = Array.from(fileList)
+    console.log("fileArray", fileArray)
 
-    const validFiles = fileArray.filter(
-      (file) => file.type.startsWith("image/") && file.size <= 10 * 1024 * 1024
-    )
+    const validFiles = fileArray.filter((file) => {
+      const isImage = file.type.startsWith("image/")
+      const isVideo = file.type.startsWith("video/")
+      if (isImage) return file.size <= MAX_IMAGE_SIZE
+      if (isVideo) return file.size <= MAX_VIDEO_SIZE
+      return false
+    })
 
     const newPreviews = validFiles.map((file) => URL.createObjectURL(file))
+
+    console.log("newPreviews", newPreviews)
 
     setImages((prev) => [...prev, ...validFiles])
     setPreviews((prev) => [...prev, ...newPreviews])
   }
 
+  console.log("previews", previews)
+  console.log("images", images)
+
   const removeImage = (index: number) => {
     const urlToRevoke = previews[index]
     setImages((prev) => prev.filter((_, i) => i !== index))
     setPreviews((prev) => prev.filter((_, i) => i !== index))
-    // Revoke after React has committed update, so Image is no longer using this URL
     if (urlToRevoke) {
       queueMicrotask(() => URL.revokeObjectURL(urlToRevoke))
     }
+  }
+
+  const removeNewImage = (newIndex: number) => {
+    removeImage(newIndex)
+  }
+
+  const removeExistingImage = (existingId: string) => {
+    setRemovedExistingIds((prev) => [...prev, existingId])
   }
 
   const onSubmit = async (values: FormValues) => {
@@ -134,6 +194,10 @@ export function ProductForm({ mode, product }: ProductFormProps) {
     images.forEach((file) => {
       formData.append("images", file)
     })
+
+    if (mode === "edit" && removedExistingIds.length > 0) {
+      formData.append("removeImageIds", JSON.stringify(removedExistingIds))
+    }
 
     console.log("formData", formData)
     console.log("images", images)
@@ -179,17 +243,12 @@ export function ProductForm({ mode, product }: ProductFormProps) {
       onSubmit={form.handleSubmit(onSubmit)}
       className="flex h-full w-[1090px] flex-col gap-4"
     >
-      {(Object.keys(form.formState.errors).length > 0 || submitError) && (
+      {submitError && (
         <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
           {submitError && <p>{submitError}</p>}
-          {Object.entries(form.formState.errors).map(([name, e]) => (
-            <div key={name}>
-              {name}: {e?.message}
-            </div>
-          ))}
         </div>
       )}
-      <div className="flex items-center justify-between">
+      <div className="mb-2 flex items-center justify-between px-4 py-2 sm:px-0 sm:py-0">
         <div className="flex items-center gap-4">
           <div
             className="flex h-7 w-7 cursor-pointer items-center justify-center"
@@ -197,7 +256,9 @@ export function ProductForm({ mode, product }: ProductFormProps) {
           >
             <ArrowLeft size={16} />
           </div>
-          <h1 className="text-xl font-semibold text-[#3F3F46]">Новий товар</h1>
+          <h1 className="text-xl font-semibold text-[#3F3F46]">
+            {mode === "create" ? "Новий товар" : "Редагувати товар"}
+          </h1>
         </div>
 
         <button
@@ -218,7 +279,14 @@ export function ProductForm({ mode, product }: ProductFormProps) {
         {/* Назва */}
         <div className="flex flex-col gap-2">
           <div className="flex justify-between">
-            <label className="text-sm text-[#18181B]">
+            <label
+              className={cn(
+                "text-sm font-medium",
+                form.formState.errors.title
+                  ? "text-[#DC2626]"
+                  : "text-[#18181B]"
+              )}
+            >
               Назва <span className="text-[#DC2626]">*</span>
             </label>
             <span className="text-sm text-[#A1A1AA]">
@@ -234,16 +302,24 @@ export function ProductForm({ mode, product }: ProductFormProps) {
                 {...field}
                 type="text"
                 maxLength={MAX_TITLE}
+                placeholder="Назва товару"
                 className="w-full rounded-md border border-[#E4E4E7] bg-white px-3 py-2 text-sm text-[#18181B] placeholder:text-[#A1A1AA] hover:border-[#2563EB] focus:border-[#2563EB] focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus-visible:ring-0"
               />
             )}
           />
+          {form.formState.errors.title && (
+            <p className="text-sm text-[#DC2626]">
+              {form.formState.errors.title.message}
+            </p>
+          )}
         </div>
 
         {/* Короткий опис */}
         <div className="flex flex-col gap-2">
           <div className="flex justify-between">
-            <label className="text-sm text-[#18181B]">Короткий опис</label>
+            <label className="text-sm font-medium text-[#18181B]">
+              Короткий опис
+            </label>
             <span className="text-sm text-[#A1A1AA]">
               {shortDescription.length}/{MAX_SHORT}
             </span>
@@ -275,7 +351,7 @@ export function ProductForm({ mode, product }: ProductFormProps) {
       <div
         className={cn(
           "h-[208px] rounded-2xl border border-[#E4E4E7] bg-white p-4",
-          previews.length > 0 && "h-full"
+          combinedList.length > 0 && "h-full"
         )}
       >
         <h2 className="mb-6 text-lg font-semibold text-[#18181B]">
@@ -283,39 +359,71 @@ export function ProductForm({ mode, product }: ProductFormProps) {
         </h2>
 
         {/* PREVIEW: 1 большая + одна сетка (миниатюры + overflow + кнопка), макс 2 ряда; размеры по брейкпоинтам */}
-        {previews.length > 0 ? (
+        {combinedList.length > 0 ? (
           <div className="flex gap-2 sm:flex sm:gap-2">
-            {/* Большое превью: 153 мобильный, 209 с md */}
+            {/* Большое превью */}
             <div className="group relative h-[153px] w-[153px] shrink-0 self-start rounded-xl border border-[#E4E4E7] sm:h-[180px] sm:w-[180px] md:h-[209px] md:w-[209px]">
-              <Image
-                src={previews[0]}
-                alt="Preview"
-                fill
-                className="rounded-xl object-contain"
-              />
-              <button
-                type="button"
-                onClick={() => removeImage(0)}
-                className="absolute right-1 top-1 rounded-full bg-[#2563EB] p-1 text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-              >
-                <X size={12} />
-              </button>
+              <div className="pointer-events-none absolute inset-0 z-10 rounded-xl bg-black/0 transition group-hover:bg-black/50" />
+              {combinedList[0].isVideo ? (
+                <video
+                  src={combinedList[0].url}
+                  className="h-full w-full rounded-xl object-contain"
+                  controls
+                  playsInline
+                  preload="metadata"
+                />
+              ) : (
+                <Image
+                  src={combinedList[0].url}
+                  alt="Preview"
+                  fill
+                  className="rounded-xl object-cover"
+                  unoptimized={combinedList[0].url.startsWith("blob:")}
+                />
+              )}
+              {(() => {
+                const first = combinedList[0]
+                if (first.isNew && "newIndex" in first) {
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => removeNewImage(first.newIndex)}
+                      className="text-#18181B absolute right-[6px] top-[6px] z-20 rounded-sm bg-white p-[2px] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                    >
+                      <FiTrash2 size={16} />
+                    </button>
+                  )
+                }
+                if (!first.isNew && "id" in first) {
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => removeExistingImage(first.id)}
+                      className="text-#18181B absolute right-[6px] top-[6px] z-20 rounded-sm bg-white p-[2px] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                    >
+                      <FiTrash2 size={16} />
+                    </button>
+                  )
+                }
+                return null
+              })()}
             </div>
 
             {/* Одна сетка: миниатюры + overflow (если есть) + кнопка; 4+ колонок = макс 2 ряда */}
             <div className="flex flex-1 flex-col gap-2">
               {(() => {
-                const hasOverflow = previews.length > previewTotalVisible
+                const totalCount = combinedList.length
+                const hasOverflow = totalCount > previewTotalVisible
                 const overflowCount = hasOverflow
-                  ? previews.length - previewTotalVisible + 1
+                  ? totalCount - previewTotalVisible + 1
                   : 0
                 const normalSmallCount =
-                  previews.length <= 1
+                  totalCount <= 1
                     ? 0
                     : hasOverflow
                       ? previewSmallSlots - 1
-                      : Math.min(previewSmallSlots, previews.length - 1)
-                const smallPreviews = previews.slice(1, 1 + normalSmallCount)
+                      : Math.min(previewSmallSlots, totalCount - 1)
+                const smallItems = combinedList.slice(1, 1 + normalSmallCount)
 
                 return (
                   <div
@@ -324,40 +432,72 @@ export function ProductForm({ mode, product }: ProductFormProps) {
                       "grid-cols-[repeat(2,71px)] sm:grid-cols-[repeat(4,80px)] md:grid-cols-[repeat(5,90px)] lg:grid-cols-[repeat(6,100px)] xl:grid-cols-[repeat(7,100px)]"
                     )}
                   >
-                    {smallPreviews.map((src, index) => {
-                      const actualIndex = index + 1
-                      return (
-                        <div
-                          key={actualIndex}
-                          className="group relative aspect-square w-[71px] shrink-0 rounded-xl border border-[#E4E4E7] sm:w-[80px] sm:min-w-[80px] md:w-[90px] md:min-w-[90px] lg:w-[100px] lg:min-w-[100px]"
-                        >
+                    {smallItems.map((item) => (
+                      <div
+                        key={item.key}
+                        className="group relative aspect-square w-[71px] shrink-0 overflow-hidden rounded-xl border border-[#E4E4E7] sm:w-[80px] sm:min-w-[80px] md:w-[90px] md:min-w-[90px] lg:w-[100px] lg:min-w-[100px]"
+                      >
+                        <div className="pointer-events-none absolute inset-0 z-10 bg-black/0 transition group-hover:bg-black/50" />
+                        {item.isVideo ? (
+                          <video
+                            src={item.url}
+                            className="h-full w-full rounded-xl object-cover"
+                            controls
+                            playsInline
+                            preload="metadata"
+                          />
+                        ) : (
                           <Image
-                            src={src}
+                            src={item.url}
                             alt="Preview"
                             fill
-                            className="rounded-xl object-contain"
+                            className="rounded-xl object-cover"
+                            unoptimized={item.url.startsWith("blob:")}
                           />
+                        )}
+                        {item.isNew && "newIndex" in item ? (
                           <button
                             type="button"
-                            onClick={() => removeImage(actualIndex)}
-                            className="absolute right-1 top-1 rounded-full bg-[#2563EB] p-[2px] text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                            onClick={() => removeNewImage(item.newIndex)}
+                            className="text-#18181B absolute right-[6px] top-[6px] z-20 rounded-sm bg-white p-[2px] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                           >
-                            <X size={12} />
+                            <FiTrash2 size={16} />
                           </button>
-                        </div>
-                      )
-                    })}
+                        ) : !item.isNew && "id" in item ? (
+                          <button
+                            type="button"
+                            onClick={() => removeExistingImage(item.id)}
+                            className="text-#18181B absolute right-[6px] top-[6px] z-20 rounded-sm bg-white p-[2px] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                          >
+                            <FiTrash2 size={16} />
+                          </button>
+                        ) : null}
+                      </div>
+                    ))}
                     {hasOverflow && (
                       <div
                         className="relative aspect-square w-[71px] shrink-0 overflow-hidden rounded-xl border border-[#E4E4E7] sm:w-[80px] md:w-[90px] lg:w-[100px]"
                         title={`Ще ${overflowCount} фото`}
                       >
-                        <Image
-                          src={previews[previews.length - 1]}
-                          alt="Preview"
-                          fill
-                          className="rounded-xl object-cover brightness-50"
-                        />
+                        {combinedList[combinedList.length - 1].isVideo ? (
+                          <video
+                            src={combinedList[combinedList.length - 1].url}
+                            className="h-full w-full rounded-xl object-cover brightness-50"
+                            controls
+                            playsInline
+                            preload="metadata"
+                          />
+                        ) : (
+                          <Image
+                            src={combinedList[combinedList.length - 1].url}
+                            alt="Preview"
+                            fill
+                            className="rounded-xl object-cover brightness-50"
+                            unoptimized={combinedList[
+                              combinedList.length - 1
+                            ].url.startsWith("blob:")}
+                          />
+                        )}
                         <span className="absolute inset-0 flex items-center justify-center text-base font-semibold text-white drop-shadow-md sm:text-lg">
                           +{overflowCount}
                         </span>
@@ -388,7 +528,7 @@ export function ProductForm({ mode, product }: ProductFormProps) {
                       <input
                         type="file"
                         multiple
-                        accept="image/*"
+                        accept={ACCEPT_MEDIA}
                         className="hidden"
                         id="images"
                         onChange={(e) =>
@@ -421,7 +561,7 @@ export function ProductForm({ mode, product }: ProductFormProps) {
             <input
               type="file"
               multiple
-              accept="image/*"
+              accept={ACCEPT_MEDIA}
               className="hidden"
               id="images"
               onChange={(e) => e.target.files && handleFiles(e.target.files)}
@@ -434,7 +574,7 @@ export function ProductForm({ mode, product }: ProductFormProps) {
               Завантажити
             </label>
 
-            <p className="text-sm text-[#3F3F46]">
+            <p className="px-3 text-sm text-[#3F3F46] sm:px-0">
               Ви можете завантажити зображення до 10 Mb, відео до 100 Mb або
               медіа файли за посиланням
             </p>
@@ -447,7 +587,7 @@ export function ProductForm({ mode, product }: ProductFormProps) {
         <h2 className="text-lg font-semibold text-[#18181B]">Ціни</h2>
 
         <div className="flex flex-col gap-2">
-          <label className="text-sm text-[#18181B]">Ціна</label>
+          <label className="text-sm font-medium text-[#18181B]">Ціна</label>
           <div className="relative w-full">
             <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#18181B]">
               ₴
@@ -490,7 +630,9 @@ export function ProductForm({ mode, product }: ProductFormProps) {
 
         <div className="grid grid-cols-3 gap-2">
           <div className="flex flex-col gap-2">
-            <label className="text-sm text-[#18181B]">Собівартість</label>
+            <label className="text-sm font-medium text-[#18181B]">
+              Собівартість
+            </label>
             <div className="relative w-full">
               <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#18181B]">
                 ₴
@@ -501,7 +643,9 @@ export function ProductForm({ mode, product }: ProductFormProps) {
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="text-sm text-[#18181B]">Прибуток</label>
+            <label className="text-sm font-medium text-[#18181B]">
+              Прибуток
+            </label>
             <div className="relative w-full">
               <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#A1A1AA]">
                 ₴
@@ -519,7 +663,7 @@ export function ProductForm({ mode, product }: ProductFormProps) {
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="text-sm text-[#18181B]">Маржа</label>
+            <label className="text-sm font-medium text-[#18181B]">Маржа</label>
             <Input
               id="margin"
               type="text"

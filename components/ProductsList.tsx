@@ -9,6 +9,7 @@ import { DeleteProductModal } from "./DeleteProductModal"
 import { ProductRow } from "./ProductRow"
 import { ProductsPagination } from "./ProductsPagination"
 import { Input } from "./ui/input"
+import { cn } from "@/lib/utils"
 
 type Product = {
   id: string
@@ -37,8 +38,6 @@ const DEFAULT_PAGE_SIZE = 10
 export function ProductsList({ products }: Props) {
   const [productToDelete, setProductToDelete] = useState<Product | null>(null)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
-
-  console.log("products", products)
 
   const [query, setQuery] = useState("")
   const [page, setPage] = useState(1)
@@ -138,15 +137,20 @@ export function ProductsList({ products }: Props) {
         </div>
       </div>
 
-      <div className="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-[#E4E4E7]">
+      <div
+        className={cn(
+          "flex w-full flex-col overflow-hidden rounded-2xl border border-[#E4E4E7]",
+          filteredProducts.length === 0 && "h-full"
+        )}
+      >
         <div className="flex h-10 items-center justify-between border-b border-[#E4E4E7] bg-[#F4F4F5] pl-2 pr-12 text-sm font-medium text-[#A1A1AA]">
           <p>Назва</p>
-          {query && <p>Ціна</p>}
+          {/* {query && <p>Ціна</p>} */}
         </div>
         {query ? (
           filteredProducts.length === 0 ? (
             <div className="flex flex-1 items-center justify-center py-12 text-center">
-              <p className="w-[210px] text-sm text-gray-500">
+              <p className="w-[210px] text-sm text-[#A1A1AA]">
                 За вашим запитом нічого не знайдено
               </p>
             </div>

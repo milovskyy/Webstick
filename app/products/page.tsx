@@ -1,23 +1,7 @@
 import { ProductsList } from "@/components/ProductsList"
-import { prisma } from "@/lib/prisma"
+import { getProducts } from "@/lib/products"
 import Link from "next/link"
 import { FiPlus } from "react-icons/fi"
-
-async function getProducts() {
-  try {
-    const rows = await prisma.product.findMany({
-      orderBy: { createdAt: "desc" },
-      include: { images: true },
-    })
-    return rows.map((p) => ({
-      ...p,
-      imageSmall: p.images[0]?.small ?? p.images[0]?.medium ?? p.images[0]?.original ?? null,
-    }))
-  } catch (error) {
-    console.error("Error fetching products:", error)
-    return []
-  }
-}
 
 export default async function ProductsPage() {
   const products = await getProducts()

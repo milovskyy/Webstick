@@ -4,7 +4,8 @@ import path from "path"
 import fs from "fs/promises"
 import { randomUUID } from "crypto"
 
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024 // 10MB
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024 // 10MB per image
+const MAX_VIDEO_SIZE = 100 * 1024 * 1024 // 100MB per video
 
 function uploadsRoot() {
   return path.join(process.cwd(), "public", "uploads", "products")
@@ -17,6 +18,25 @@ async function deleteProductFolder(productId: string) {
   } catch (e) {
     console.error("deleteProductFolder:", e)
   }
+}
+
+async function deleteProductImage(imageId: string, productId: string) {
+  const image = await prisma.productImage.findFirst({
+    where: { id: imageId, productId },
+  })
+  if (!image) return
+  const publicRoot = path.join(process.cwd(), "public")
+  const pathsToDelete = [image.original, image.small, image.medium, image.large]
+    .filter((p): p is string => p != null && p !== "")
+    .map((p) => path.join(publicRoot, p))
+  for (const filePath of pathsToDelete) {
+    try {
+      await fs.unlink(filePath)
+    } catch (e) {
+      console.error("deleteProductImage unlink:", filePath, e)
+    }
+  }
+  await prisma.productImage.delete({ where: { id: imageId } })
 }
 
 export async function GET(
@@ -62,24 +82,38 @@ export async function PUT(
     const formData = await request.formData()
 
     const title = (formData.get("title") as string)?.trim()
-    const shortDescription = (formData.get("shortDescription") as string)?.trim() || null
+    const shortDescription =
+      (formData.get("shortDescription") as string)?.trim() || null
     const description = (formData.get("description") as string)?.trim() || null
     const price = Number(formData.get("price"))
     const costPrice = Number(formData.get("costPrice")) || 0
     const discountPriceRaw = formData.get("discountPrice")
     const discountPrice =
-      discountPriceRaw !== null && discountPriceRaw !== undefined && String(discountPriceRaw).trim() !== ""
+      discountPriceRaw !== null &&
+      discountPriceRaw !== undefined &&
+      String(discountPriceRaw).trim() !== ""
         ? Number(discountPriceRaw)
         : null
 
     const imagesRaw = formData.getAll("images")
-    const newImageFiles = imagesRaw.filter((f): f is File => f instanceof File && f.size > 0)
+    const newImageFiles = imagesRaw.filter(
+      (f): f is File => f instanceof File && f.size > 0
+    )
+
+    const removeImageIdsRaw = formData.get("removeImageIds")
+    const removeImageIds: string[] =
+      typeof removeImageIdsRaw === "string"
+        ? (() => {
+            try {
+              return JSON.parse(removeImageIdsRaw)
+            } catch {
+              return []
+            }
+          })()
+        : []
 
     if (!title || title.length === 0) {
-      return NextResponse.json(
-        { error: "Назва обов'язкова" },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: "Назва обов'язкова" }, { status: 400 })
     }
     if (isNaN(price) || price < 0) {
       return NextResponse.json(
@@ -89,15 +123,23 @@ export async function PUT(
     }
 
     for (const file of newImageFiles) {
-      if (!file.type.startsWith("image/")) {
+      const isImage = file.type.startsWith("image/")
+      const isVideo = file.type.startsWith("video/")
+      if (!isImage && !isVideo) {
         return NextResponse.json(
-          { error: "Дозволені лише зображення" },
+          { error: "Дозволені лише зображення та відео" },
           { status: 400 }
         )
       }
-      if (file.size > MAX_IMAGE_SIZE) {
+      if (isImage && file.size > MAX_IMAGE_SIZE) {
         return NextResponse.json(
           { error: "Розмір зображення не більше 10 МБ" },
+          { status: 400 }
+        )
+      }
+      if (isVideo && file.size > MAX_VIDEO_SIZE) {
+        return NextResponse.json(
+          { error: "Розмір відео не більше 100 МБ" },
           { status: 400 }
         )
       }
@@ -115,14 +157,24 @@ export async function PUT(
       },
     })
 
+    for (const imageId of removeImageIds) {
+      if (typeof imageId === "string" && imageId) {
+        await deleteProductImage(imageId, id)
+      }
+    }
+
     const uploadBase = path.join(uploadsRoot(), id)
 
     for (const file of newImageFiles) {
       const bytes = await file.arrayBuffer()
       const buffer = Buffer.from(bytes)
 
-      const ext = file.name && /\.\w+$/.test(file.name) ? path.extname(file.name).toLowerCase() : ".jpg"
-      const fileName = randomUUID() + (ext === ".jpg" || ext === ".jpeg" ? ".jpg" : ext)
+      const ext =
+        file.name && /\.\w+$/.test(file.name)
+          ? path.extname(file.name).toLowerCase()
+          : ".jpg"
+      const fileName =
+        randomUUID() + (ext === ".jpg" || ext === ".jpeg" ? ".jpg" : ext)
 
       const originalDir = path.join(uploadBase, "original")
       await fs.mkdir(originalDir, { recursive: true })
@@ -145,7 +197,8 @@ export async function PUT(
     return NextResponse.json(updatedProduct)
   } catch (error: unknown) {
     console.error("Error updating product:", error)
-    const message = error instanceof Error ? error.message : "Failed to update product"
+    const message =
+      error instanceof Error ? error.message : "Failed to update product"
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

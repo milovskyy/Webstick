@@ -1,11 +1,11 @@
 "use client"
 
 import { cn } from "@/lib/utils"
+import { MonitorCheck } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useState } from "react"
-import { CgScreen } from "react-icons/cg"
 import { FiFileText, FiSidebar } from "react-icons/fi"
 import { IoIosArrowDown } from "react-icons/io"
 import { LuFolders } from "react-icons/lu"
@@ -14,16 +14,16 @@ const menuItems = [
   {
     title: "Дашборд",
     href: "/",
-    icon: <CgScreen />,
+    icon: <MonitorCheck size={16} />,
   },
   {
     title: "Замовлення",
     href: "/orders",
-    icon: <FiFileText />,
+    icon: <FiFileText size={16} />,
   },
   {
     title: "Каталог",
-    icon: <LuFolders />,
+    icon: <LuFolders size={16} />,
     children: [
       { title: "Товари", href: "/products" },
       { title: "Залишки", href: "/inventory" },
@@ -131,8 +131,8 @@ export function Sidebar() {
                   {!isCollapsed && (
                     <span
                       className={cn(
-                        "rotate-0 transition-transform duration-300",
-                        openItems.includes(item.title) && "rotate-90"
+                        "rotate-90 transition-transform duration-300",
+                        openItems.includes(item.title) && "rotate-0"
                       )}
                     >
                       <IoIosArrowDown size={16} />

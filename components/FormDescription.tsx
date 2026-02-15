@@ -124,7 +124,7 @@ export function FormDescription({ value, onChange }: Props) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex justify-between">
-        <label className="text-sm text-[#18181B]">Опис</label>
+        <label className="text-sm font-medium text-[#18181B]">Опис</label>
 
         {editor && (
           <span className="text-sm text-[#A1A1AA]">
@@ -135,7 +135,7 @@ export function FormDescription({ value, onChange }: Props) {
       </div>
 
       <div className="group relative w-full rounded-md border bg-white focus-within:border-[#2563EB] hover:border-[#2563EB]">
-        <div className="flex h-12 flex-wrap items-center gap-1 rounded-t-md border-b bg-gray-50 p-2 group-focus-within:border-[#2563EB] group-hover:border-b-[#2563EB]">
+        <div className="flex h-12 flex-wrap items-center gap-1 rounded-t-md border-b p-2 group-focus-within:border-[#2563EB] group-hover:border-b-[#2563EB]">
           <button
             type="button"
             onClick={() =>
