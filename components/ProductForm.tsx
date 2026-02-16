@@ -349,7 +349,7 @@ export function ProductForm({ mode, product }: ProductFormProps) {
       <div
         className={cn(
           "bg-white p-4 sm:h-[208px] sm:rounded-2xl sm:border sm:border-[#E4E4E7]",
-          combinedList.length > 0 && "h-full"
+          combinedList.length > 0 && "h-full sm:h-full"
         )}
       >
         <h2 className="mb-6 text-lg font-semibold text-[#18181B]">
