@@ -62,7 +62,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "hidden flex-col bg-[#F8F9FB] text-sm text-white transition-all duration-300 xl:flex",
+        "hidden flex-col bg-[#F8F9FB] text-sm text-white transition-all duration-300 md:flex",
         isCollapsed ? "w-[72px]" : "w-64"
       )}
     >

@@ -25,6 +25,7 @@ import {
   Heading2,
 } from "lucide-react"
 import { PiYoutubeLogo } from "react-icons/pi"
+import { cn } from "@/lib/utils"
 
 type Props = {
   value?: string
@@ -204,7 +205,7 @@ export function FormDescription({ value, onChange }: Props) {
             <ListOrdered size={16} />
           </button>
 
-          <div className="mx-1 h-6 w-px bg-gray-300" />
+          <div className="mx-1 hidden h-6 w-px bg-gray-300 sm:block" />
 
           <button
             type="button"
@@ -214,7 +215,10 @@ export function FormDescription({ value, onChange }: Props) {
                 editor?.chain().focus().setLink({ href: url }).run()
               }
             }}
-            className={buttonClass(editor?.isActive("link") || false)}
+            className={cn(
+              buttonClass(editor?.isActive("link") || false),
+              "hidden sm:block"
+            )}
           >
             <LinkIcon size={16} />
           </button>
@@ -235,7 +239,7 @@ export function FormDescription({ value, onChange }: Props) {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="rounded-md p-2 text-gray-600 hover:bg-gray-100"
+              className="hidden rounded-md p-2 text-gray-600 hover:bg-gray-100 sm:block"
             >
               <ImageIcon size={16} />
             </button>
@@ -249,17 +253,17 @@ export function FormDescription({ value, onChange }: Props) {
                 editor?.chain().focus().setYoutubeVideo({ src: url }).run()
               }
             }}
-            className="rounded-md p-2 text-gray-600 hover:bg-gray-100"
+            className="hidden rounded-md p-2 text-gray-600 hover:bg-gray-100 sm:block"
           >
             <PiYoutubeLogo size={16} color="#18181B" />
           </button>
 
-          <div className="mx-1 h-6 w-px bg-gray-300" />
+          <div className="mx-1 hidden h-6 w-px bg-gray-300 sm:block" />
 
           <button
             type="button"
             onClick={() => editor?.chain().focus().setHorizontalRule().run()}
-            className="rounded-md p-2 text-gray-600 hover:bg-gray-100"
+            className="hidden rounded-md p-2 text-gray-600 hover:bg-gray-100 sm:block"
           >
             <Minus size={16} />
           </button>

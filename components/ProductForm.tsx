@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useForm, Controller, useWatch } from "react-hook-form"
 import { z } from "zod"
 
-import { ArrowLeft, Loader2, Plus, Save, X } from "lucide-react"
+import { ArrowLeft, ChevronLeft, Loader2, Plus, Save, X } from "lucide-react"
 import { Input } from "./ui/input"
 import { Textarea } from "./ui/textarea"
 import { FormDescription } from "./FormDescription"
@@ -151,14 +151,9 @@ export function ProductForm({ mode, product }: ProductFormProps) {
 
     const newPreviews = validFiles.map((file) => URL.createObjectURL(file))
 
-    console.log("newPreviews", newPreviews)
-
     setImages((prev) => [...prev, ...validFiles])
     setPreviews((prev) => [...prev, ...newPreviews])
   }
-
-  console.log("previews", previews)
-  console.log("images", images)
 
   const removeImage = (index: number) => {
     const urlToRevoke = previews[index]
@@ -198,9 +193,6 @@ export function ProductForm({ mode, product }: ProductFormProps) {
     if (mode === "edit" && removedExistingIds.length > 0) {
       formData.append("removeImageIds", JSON.stringify(removedExistingIds))
     }
-
-    console.log("formData", formData)
-    console.log("images", images)
 
     const method = mode === "create" ? "POST" : "PUT"
 
@@ -248,34 +240,40 @@ export function ProductForm({ mode, product }: ProductFormProps) {
           {submitError && <p>{submitError}</p>}
         </div>
       )}
-      <div className="mb-2 flex items-center justify-between px-4 py-2 sm:px-0 sm:py-0">
-        <div className="flex items-center gap-4">
-          <div
-            className="flex h-7 w-7 cursor-pointer items-center justify-center"
-            onClick={() => router.push("/products")}
-          >
-            <ArrowLeft size={16} />
+      <div className="flex flex-col max-sm:gap-1">
+        <div className="flex items-center justify-between px-[10px] py-[6px] sm:mb-2 sm:px-0 sm:py-0">
+          <div className="flex items-center gap-4">
+            <div
+              className="flex h-7 w-7 cursor-pointer items-center justify-center"
+              onClick={() => router.push("/products")}
+            >
+              <ArrowLeft size={16} className="hidden md:block" />
+              <ChevronLeft size={16} className="block md:hidden" />
+            </div>
+            <h1 className="hidden text-xl font-semibold text-[#3F3F46] sm:block">
+              {mode === "create" ? "Новий товар" : "Редагувати товар"}
+            </h1>
           </div>
-          <h1 className="text-xl font-semibold text-[#3F3F46]">
-            {mode === "create" ? "Новий товар" : "Редагувати товар"}
-          </h1>
-        </div>
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="flex h-9 min-w-[121px] items-center justify-center gap-2 rounded-md bg-[#2563EB] px-4 py-2 text-sm font-medium text-[#F8F9FB] hover:bg-[#3A72ED] focus:border-none focus:outline-none"
-        >
-          {isSubmitting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Save className="h-4 w-4" />
-          )}
-          Зберегти
-        </button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="flex h-9 items-center justify-center gap-2 rounded-md px-[6px] py-2 text-sm font-medium text-[#2563EB] focus:border-none focus:outline-none sm:min-w-[121px] sm:bg-[#2563EB] sm:px-4 sm:text-[#F8F9FB] sm:hover:bg-[#3A72ED]"
+          >
+            {isSubmitting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="hidden h-4 w-4 sm:block" />
+            )}
+            Зберегти
+          </button>
+        </div>
+        <span className="block px-4 text-lg font-semibold text-[#3F3F46] sm:hidden">
+          {mode === "create" ? "Новий товар" : product?.title}
+        </span>
       </div>
 
-      <div className="flex flex-col gap-4 rounded-2xl border border-[#E4E4E7] bg-white p-4">
+      <div className="flex flex-col gap-4 bg-white p-4 sm:rounded-2xl sm:border sm:border-[#E4E4E7]">
         {/* Назва */}
         <div className="flex flex-col gap-2">
           <div className="flex justify-between">
@@ -350,7 +348,7 @@ export function ProductForm({ mode, product }: ProductFormProps) {
 
       <div
         className={cn(
-          "h-[208px] rounded-2xl border border-[#E4E4E7] bg-white p-4",
+          "bg-white p-4 sm:h-[208px] sm:rounded-2xl sm:border sm:border-[#E4E4E7]",
           combinedList.length > 0 && "h-full"
         )}
       >
@@ -377,6 +375,7 @@ export function ProductForm({ mode, product }: ProductFormProps) {
                   src={combinedList[0].url}
                   alt="Preview"
                   fill
+                  sizes="153px"
                   className="rounded-xl object-cover"
                   unoptimized={combinedList[0].url.startsWith("blob:")}
                 />
@@ -451,6 +450,7 @@ export function ProductForm({ mode, product }: ProductFormProps) {
                             src={item.url}
                             alt="Preview"
                             fill
+                            sizes="71px"
                             className="rounded-xl object-cover"
                             unoptimized={item.url.startsWith("blob:")}
                           />
@@ -492,6 +492,7 @@ export function ProductForm({ mode, product }: ProductFormProps) {
                             src={combinedList[combinedList.length - 1].url}
                             alt="Preview"
                             fill
+                            sizes="71px"
                             className="rounded-xl object-cover brightness-50"
                             unoptimized={combinedList[
                               combinedList.length - 1
@@ -554,7 +555,7 @@ export function ProductForm({ mode, product }: ProductFormProps) {
               handleFiles(e.dataTransfer.files)
             }}
             className={cn(
-              "box-border flex h-[124px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed bg-[#F8F9FB] p-8 text-center hover:border-none hover:bg-[#E2E2E2]",
+              "box-border flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed bg-[#F8F9FB] p-8 text-center hover:border-none hover:bg-[#E2E2E2] sm:h-[124px]",
               isDragging && "bg-[#E2E2E2]"
             )}
           >
@@ -569,7 +570,7 @@ export function ProductForm({ mode, product }: ProductFormProps) {
 
             <label
               htmlFor="images"
-              className="box-border cursor-pointer rounded-md border border-[#E4E4E7] bg-white px-3 py-2 text-xs font-medium text-[#18181B] hover:bg-[#F8F9FB]"
+              className="box-border cursor-pointer rounded-md border border-[#E4E4E7] bg-white px-3 py-[6px] text-xs font-medium text-[#18181B] hover:bg-[#F8F9FB] sm:py-2"
             >
               Завантажити
             </label>
@@ -583,7 +584,7 @@ export function ProductForm({ mode, product }: ProductFormProps) {
       </div>
 
       {/* Ціни */}
-      <div className="flex flex-col gap-4 rounded-2xl border border-[#E4E4E7] bg-white p-4">
+      <div className="flex flex-col gap-4 bg-white p-4 sm:rounded-2xl sm:border sm:border-[#E4E4E7]">
         <h2 className="text-lg font-semibold text-[#18181B]">Ціни</h2>
 
         <div className="flex flex-col gap-2">
@@ -628,8 +629,8 @@ export function ProductForm({ mode, product }: ProductFormProps) {
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-2">
-          <div className="flex flex-col gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <div className="col-span-2 flex flex-col gap-2 sm:col-span-1">
             <label className="text-sm font-medium text-[#18181B]">
               Собівартість
             </label>
@@ -646,7 +647,7 @@ export function ProductForm({ mode, product }: ProductFormProps) {
             <label className="text-sm font-medium text-[#18181B]">
               Прибуток
             </label>
-            <div className="relative w-full">
+            <div className="relative">
               <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#A1A1AA]">
                 ₴
               </span>

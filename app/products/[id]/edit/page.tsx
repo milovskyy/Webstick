@@ -15,7 +15,7 @@ export default async function EditProductPage({
   if (!product) notFound()
 
   return (
-    <div className="flex h-full w-full justify-center bg-[#F8F9FB] p-5 pb-8">
+    <div className="flex h-full w-full justify-center bg-[#F8F9FB] p-0 pb-4 sm:p-5 sm:pb-8">
       <ProductForm mode="edit" product={product} />
     </div>
   )

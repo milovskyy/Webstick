@@ -7,8 +7,8 @@ export default async function ProductsPage() {
   const products = await getProducts()
 
   return (
-    <div className="flex h-full flex-col gap-6 bg-[#F8F9FB] pb-8 pl-0 pr-5 pt-5">
-      <div className="flex items-center justify-between">
+    <div className="flex h-full flex-1 flex-col gap-4 bg-[#F8F9FB] pb-3 sm:h-full sm:gap-6 sm:pb-8 sm:pr-5 sm:pt-5">
+      <div className="hidden items-center justify-between sm:flex">
         <h1 className="text-xl font-semibold text-[#3F3F46]">Товари</h1>
 
         <Link

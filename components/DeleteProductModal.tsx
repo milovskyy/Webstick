@@ -43,7 +43,7 @@ export function DeleteProductModal({
       open={isDeleteModalOpen}
       onOpenChange={(open) => !open && setIsDeleteModalOpen(false)}
     >
-      <DialogContent className="w-[700px] max-w-[700px] border-none p-6 [&>button]:hidden">
+      <DialogContent className="w-[342px] max-w-[342px] rounded-lg border-none p-4 md:w-[700px] md:max-w-[700px] md:p-6 [&>button]:hidden">
         <DialogHeader className="gap-[6px] space-y-0">
           <div className="flex items-center justify-between">
             <DialogTitle className="my-1 text-sm text-[#18181B]">
@@ -56,7 +56,7 @@ export function DeleteProductModal({
               <FaXmark size={16} />
             </div>
           </div>
-          <DialogDescription className="text-sm text-[#A1A1AA]">
+          <DialogDescription className="text-start text-sm text-[#A1A1AA]">
             Ви впевнені, що бажаєте видалити товар?
           </DialogDescription>
         </DialogHeader>

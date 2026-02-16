@@ -2,7 +2,6 @@ import { FilePen } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { FaRegEdit } from "react-icons/fa"
 import { FiTrash2 } from "react-icons/fi"
 
 type Product = {
@@ -26,7 +25,7 @@ export function ProductRow({ product, onDelete }: Props) {
       key={product.id}
       href={`/products/${product.id}`}
       role="listitem"
-      className="flex h-14 w-full items-center justify-between border-b border-[#E4E4E7] hover:bg-[#F4F4F5]"
+      className="flex h-14 w-full items-center justify-between border-b border-[#E4E4E7] bg-white hover:bg-[#F4F4F5]"
     >
       <div className="flex items-center gap-2 p-2">
         <div className="relative flex h-10 max-h-10 w-10 max-w-10 items-center justify-center">
@@ -34,15 +33,22 @@ export function ProductRow({ product, onDelete }: Props) {
             src={product.imageSmall ?? "/image-placeholder.png"}
             alt="Product"
             fill
-            className="object-contain"
+            sizes="40px"
+            className="h-10 w-10 object-cover"
           />
         </div>
-
-        <p className="text-sm font-medium text-[#18181B]">{`${product.title} ${product.shortDescription ? `- ${product.shortDescription}` : ""}`}</p>
+        <div className="flex text-sm font-medium text-[#18181B]">
+          <span>{product.title}</span>
+          {product.shortDescription && (
+            <span className="hidden sm:block">
+              &nbsp;- {product.shortDescription}
+            </span>
+          )}
+        </div>
       </div>
-      <div className="flex">
+      <div className="flex gap-2">
         <button
-          className="flex h-10 w-10 items-center justify-center hover:bg-[#E4E4E7]"
+          className="flex h-9 w-9 items-center justify-center hover:bg-[#E4E4E7]"
           title="Редагувати"
           onClick={(e) => {
             e.preventDefault()
@@ -54,7 +60,7 @@ export function ProductRow({ product, onDelete }: Props) {
         </button>
 
         <button
-          className="flex h-10 w-10 items-center justify-center hover:bg-[#E4E4E7]"
+          className="flex h-9 w-9 items-center justify-center hover:bg-[#E4E4E7]"
           title="Видалити"
           onClick={(e) => {
             e.preventDefault()
