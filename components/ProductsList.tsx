@@ -1,10 +1,12 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { FiPlus } from "react-icons/fi"
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants"
 import { cn } from "@/lib/utils"
+import type { ProductsMeta } from "@/lib/products"
 import { DeleteProductModal } from "./DeleteProductModal"
 import { ProductRow } from "./ProductRow"
 import { ProductsPagination } from "./ProductsPagination"
@@ -20,39 +22,68 @@ type Product = {
 
 type Props = {
   products: Product[]
+  meta: ProductsMeta
+  currentSearch: string
 }
 
-function filterProducts(products: Product[], query: string): Product[] {
-  const normalized = query.trim().toLowerCase()
-  if (!normalized) return products
-  return products.filter(
-    (p) =>
-      p.title.toLowerCase().includes(normalized) ||
-      (p.shortDescription?.toLowerCase().includes(normalized) ?? false)
-  )
+function buildProductsUrl(params: {
+  page: number
+  perPage: number
+  search: string
+}): string {
+  const sp = new URLSearchParams()
+  if (params.page > 1) sp.set("page", String(params.page))
+  if (params.perPage !== DEFAULT_PAGE_SIZE)
+    sp.set("perPage", String(params.perPage))
+  if (params.search) sp.set("search", params.search)
+  const q = sp.toString()
+  return q ? `/products?${q}` : "/products"
 }
 
-export function ProductsList({ products }: Props) {
+export function ProductsList({ products, meta, currentSearch }: Props) {
   const [productToDelete, setProductToDelete] = useState<Product | null>(null)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [searchInputValue, setSearchInputValue] = useState(currentSearch)
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const router = useRouter()
 
-  const [query, setQuery] = useState("")
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
+  useEffect(() => {
+    setSearchInputValue(currentSearch)
+  }, [currentSearch])
 
-  const filteredProducts = useMemo(
-    () => filterProducts(products, query),
-    [products, query]
+  const applySearch = useCallback(
+    (search: string) => {
+      router.push(
+        buildProductsUrl({
+          page: 1,
+          perPage: meta.perPage,
+          search: search.trim(),
+        })
+      )
+    },
+    [router, meta.perPage]
   )
 
-  const totalItems = filteredProducts.length
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
-  const safePage = Math.min(Math.max(1, page), totalPages)
-  const start = (safePage - 1) * pageSize
-  const paginatedProducts = useMemo(
-    () => filteredProducts.slice(start, start + pageSize),
-    [filteredProducts, start, pageSize]
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearchInputValue(value)
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
+      searchTimeoutRef.current = setTimeout(() => {
+        applySearch(value)
+        searchTimeoutRef.current = null
+      }, 400)
+    },
+    [applySearch]
   )
+
+  const handleSearchClear = useCallback(() => {
+    setSearchInputValue("")
+    applySearch("")
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current)
+      searchTimeoutRef.current = null
+    }
+  }, [applySearch])
 
   const handleDeleteClick = (product: Product) => {
     setProductToDelete(product)
@@ -60,12 +91,23 @@ export function ProductsList({ products }: Props) {
   }
 
   const handlePageChange = (newPage: number) => {
-    setPage(Math.max(1, Math.min(newPage, totalPages)))
+    router.push(
+      buildProductsUrl({
+        page: newPage,
+        perPage: meta.perPage,
+        search: currentSearch,
+      })
+    )
   }
 
   const handlePageSizeChange = (newPageSize: number) => {
-    setPageSize(newPageSize)
-    setPage(1)
+    router.push(
+      buildProductsUrl({
+        page: 1,
+        perPage: newPageSize,
+        search: currentSearch,
+      })
+    )
   }
 
   const handleConfirmDelete = async (id: string) => {
@@ -84,10 +126,6 @@ export function ProductsList({ products }: Props) {
     }
   }
 
-  useEffect(() => {
-    if (totalPages > 0 && page > totalPages) setPage(totalPages)
-  }, [totalPages, page])
-
   return (
     <div className="flex h-full w-full flex-1 flex-col gap-4 sm:gap-6">
       {isDeleteModalOpen && productToDelete && (
@@ -100,7 +138,11 @@ export function ProductsList({ products }: Props) {
       )}
       <div className="flex w-full gap-2 px-4 sm:ml-[1px] sm:max-w-[400px] sm:px-0">
         <div className="relative flex w-full flex-1 items-center">
-          <SearchInput query={query} setQuery={setQuery} />
+          <SearchInput
+            query={searchInputValue}
+            setQuery={handleSearchChange}
+            onClear={handleSearchClear}
+          />
         </div>
         <Link
           href="/products/new"
@@ -114,14 +156,14 @@ export function ProductsList({ products }: Props) {
       <div
         className={cn(
           "flex w-full flex-col overflow-hidden max-sm:flex-1 sm:rounded-2xl sm:border sm:border-[#E4E4E7]",
-          filteredProducts.length === 0 && "h-full"
+          products.length === 0 && "h-full"
         )}
       >
         <div className="hidden h-10 items-center justify-between border-b border-[#E4E4E7] bg-[#F4F4F5] pl-2 pr-12 text-sm font-medium text-[#A1A1AA] sm:flex">
           Назва
         </div>
-        {filteredProducts.length === 0 ? (
-          query ? (
+        {products.length === 0 ? (
+          currentSearch ? (
             <div className="flex flex-1 items-center justify-center bg-white py-12 text-center">
               <p className="w-[210px] text-sm text-[#A1A1AA]">
                 За вашим запитом нічого не знайдено
@@ -140,7 +182,7 @@ export function ProductsList({ products }: Props) {
           )
         ) : (
           <div id="products-grid" className="flex flex-col" role="list">
-            {paginatedProducts.map((product) => (
+            {products.map((product) => (
               <ProductRow
                 key={product.id}
                 product={product}
@@ -152,9 +194,9 @@ export function ProductsList({ products }: Props) {
       </div>
 
       <ProductsPagination
-        currentPage={safePage}
-        totalPages={totalPages}
-        pageSize={pageSize}
+        currentPage={meta.page}
+        totalPages={meta.totalPages}
+        pageSize={meta.perPage}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
       />

@@ -29,7 +29,7 @@ export function ProductFormHeader({
             <ChevronLeft size={16} className="block md:hidden" />
           </div>
           <h1 className="hidden text-xl font-semibold text-[#3F3F46] sm:block">
-            {mode === "create" ? "Новий товар" : "Редагувати товар"}
+            {mode === "create" ? "Новий товар" : productTitle}
           </h1>
         </div>
 

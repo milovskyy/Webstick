@@ -24,25 +24,6 @@ async function deleteProductFolder(productId: string) {
   }
 }
 
-async function deleteProductImage(imageId: string, productId: string) {
-  const image = await prisma.productImage.findFirst({
-    where: { id: imageId, productId },
-  })
-  if (!image) return
-  const publicRoot = path.join(process.cwd(), "public")
-  const pathsToDelete = [image.original, image.small, image.medium, image.large]
-    .filter((p): p is string => p != null && p !== "")
-    .map((p) => path.join(publicRoot, p))
-  for (const filePath of pathsToDelete) {
-    try {
-      await fs.unlink(filePath)
-    } catch (e) {
-      console.error("deleteProductImage unlink:", filePath, e)
-    }
-  }
-  await prisma.productImage.delete({ where: { id: imageId } })
-}
-
 export async function GET(
   _request: NextRequest,
   context: { params: { id: string } }
@@ -89,7 +70,8 @@ export async function PUT(
     const shortDescription =
       (formData.get("shortDescription") as string)?.trim() || null
     const description = (formData.get("description") as string)?.trim() || null
-    const price = Number(formData.get("price"))
+    const priceRaw = formData.get("price")
+    const price = priceRaw ? Number(priceRaw) : NaN
     const costPrice = Number(formData.get("costPrice")) || 0
     const discountPriceRaw = formData.get("discountPrice")
     const discountPrice =
@@ -103,6 +85,12 @@ export async function PUT(
     const newImageFiles = imagesRaw.filter(
       (f): f is File => f instanceof File && f.size > 0
     )
+    if (newImageFiles.length > 15) {
+      return NextResponse.json(
+        { error: "Максимальна кількість зображень 15" },
+        { status: 400 }
+      )
+    }
 
     const removeImageIdsRaw = formData.get("removeImageIds")
     const removeImageIds: string[] =
@@ -175,25 +163,20 @@ export async function PUT(
       }
     }
 
-    await prisma.product.update({
-      where: { id },
-      data: {
-        title,
-        shortDescription,
-        description,
-        price,
-        costPrice: isNaN(costPrice) ? 0 : costPrice,
-        discountPrice,
-      },
-    })
-
-    for (const imageId of removeImageIds) {
-      if (typeof imageId === "string" && imageId) {
-        await deleteProductImage(imageId, id)
+    const publicRoot = path.join(process.cwd(), "public")
+    const pathsToDeleteFromFs: string[] = []
+    for (const image of existingProduct.images) {
+      if (removeImageIds.includes(image.id)) {
+        const paths = [image.original, image.small, image.medium, image.large]
+          .filter((p): p is string => p != null && p !== "")
+          .map((p) => path.join(publicRoot, p))
+        pathsToDeleteFromFs.push(...paths)
       }
     }
 
     const uploadBase = path.join(uploadsRoot(), id)
+    const newImageRecords: { original: string }[] = []
+    const newlyWrittenPaths: string[] = []
 
     for (const file of newImageFiles) {
       const bytes = await file.arrayBuffer()
@@ -211,13 +194,66 @@ export async function PUT(
 
       const filePath = path.join(originalDir, fileName)
       await fs.writeFile(filePath, buffer)
+      newlyWrittenPaths.push(filePath)
 
-      await prisma.productImage.create({
-        data: {
-          productId: id,
-          original: `/uploads/products/${id}/original/${fileName}`,
-        },
+      newImageRecords.push({
+        original: `/uploads/products/${id}/original/${fileName}`,
       })
+    }
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        await tx.product.update({
+          where: { id },
+          data: {
+            title,
+            shortDescription,
+            description,
+            price,
+            costPrice: isNaN(costPrice) ? 0 : costPrice,
+            discountPrice,
+          },
+        })
+
+        if (removeImageIds.length > 0) {
+          await tx.productImage.deleteMany({
+            where: {
+              id: { in: removeImageIds },
+              productId: id,
+            },
+          })
+        }
+
+        if (newImageRecords.length > 0) {
+          await tx.productImage.createMany({
+            data: newImageRecords.map((r) => ({
+              productId: id,
+              original: r.original,
+            })),
+          })
+        }
+      })
+    } catch (txError) {
+      for (const filePath of newlyWrittenPaths) {
+        try {
+          await fs.unlink(filePath)
+        } catch (e) {
+          console.error(
+            "Rollback: failed to remove uploaded file:",
+            filePath,
+            e
+          )
+        }
+      }
+      throw txError
+    }
+
+    for (const filePath of pathsToDeleteFromFs) {
+      try {
+        await fs.unlink(filePath)
+      } catch (e) {
+        console.error("Failed to remove old image file:", filePath, e)
+      }
     }
 
     const updatedProduct = await prisma.product.findUnique({
@@ -247,8 +283,8 @@ export async function DELETE(
       return NextResponse.json({ error: "Product not found" }, { status: 404 })
     }
 
-    await deleteProductFolder(id)
     await prisma.product.delete({ where: { id } })
+    await deleteProductFolder(id)
 
     return NextResponse.json({ success: true })
   } catch (error) {

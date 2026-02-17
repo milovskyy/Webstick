@@ -5,9 +5,10 @@ import { Input } from "./ui/input"
 type Props = {
   query: string
   setQuery: (query: string) => void
+  onClear?: () => void
 }
 
-export function SearchInput({ query, setQuery }: Props) {
+export function SearchInput({ query, setQuery, onClear }: Props) {
   return (
     <>
       <label htmlFor="products-search" className="sr-only">
@@ -29,7 +30,10 @@ export function SearchInput({ query, setQuery }: Props) {
         {query && (
           <button
             type="button"
-            onClick={() => setQuery("")}
+            onClick={() => {
+              setQuery("")
+              onClear?.()
+            }}
             className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer rounded p-1 text-[#18181B] group-hover/field:border-[#2563EB]"
             aria-label="Очистити пошук"
           >

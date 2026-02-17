@@ -2,15 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* .editor-image {
-  max-width: 300px;
-  width: 100%;
-  height: auto;
-  display: block;
-  margin: 12px auto;
-  border-radius: 8px;
-} */
-
 .ProseMirror {
   min-height: 220px;
   outline: none;

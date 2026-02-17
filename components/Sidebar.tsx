@@ -7,7 +7,8 @@ import { usePathname } from "next/navigation"
 import { FiSidebar } from "react-icons/fi"
 import { IoIosArrowDown } from "react-icons/io"
 import { cn } from "@/lib/utils"
-import { MENU_ITEMS, MenuItemChild } from "@/lib/constants"
+import { MENU_ITEMS } from "@/lib/constants"
+import type { MenuItemChild } from "@/lib/types"
 
 export function Sidebar() {
   const pathname = usePathname()
@@ -53,7 +54,13 @@ export function Sidebar() {
         ) : (
           <div className="flex w-full justify-between">
             <Link href={`/`}>
-              <Image src="/Biksico.png" alt="logo" width={103} height={29} />
+              <Image
+                src="/Biksico.png"
+                alt="logo"
+                width={103}
+                height={29}
+                priority
+              />
             </Link>
             <button
               onClick={toggleSidebar}

@@ -1,13 +1,34 @@
 import Link from "next/link"
-import { getProducts } from "@/lib/products"
 import { FiPlus } from "react-icons/fi"
+import { DEFAULT_PAGE_SIZE } from "@/lib/constants"
+import { getProductsPaginated } from "@/lib/products"
 import { ProductsList } from "@/components/ProductsList"
 
-export default async function ProductsPage() {
-  const products = await getProducts()
+type Props = {
+  searchParams: Promise<{ page?: string; perPage?: string; search?: string }>
+}
+
+export default async function ProductsPage({ searchParams }: Props) {
+  const params = await searchParams
+  const page = Math.max(1, parseInt(params.page || "1", 10) || 1)
+  const perPage = Math.max(
+    1,
+    Math.min(
+      100,
+      parseInt(params.perPage || String(DEFAULT_PAGE_SIZE), 10) ||
+        DEFAULT_PAGE_SIZE
+    )
+  )
+  const search = params.search?.trim() || ""
+
+  const { data: products, meta } = await getProductsPaginated(
+    page,
+    perPage,
+    search || undefined
+  )
 
   return (
-    <div className="flex h-full flex-1 flex-col gap-4 bg-[#F8F9FB] pb-3 sm:h-full sm:gap-6 sm:pb-8 sm:pr-5 sm:pt-5">
+    <div className="flex h-full flex-1 flex-col gap-4 bg-[#F8F9FB] pb-3 sm:h-full sm:gap-6 sm:pb-8 sm:pr-5 sm:pt-5 sm:max-md:pl-5">
       <div className="hidden items-center justify-between sm:flex">
         <h1 className="text-xl font-semibold text-[#3F3F46]">Товари</h1>
 
@@ -20,7 +41,7 @@ export default async function ProductsPage() {
         </Link>
       </div>
 
-      <ProductsList products={products} />
+      <ProductsList products={products} meta={meta} currentSearch={search} />
     </div>
   )
 }

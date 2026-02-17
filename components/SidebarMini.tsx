@@ -7,7 +7,8 @@ import { FiSidebar } from "react-icons/fi"
 import { IoIosArrowDown } from "react-icons/io"
 
 import { cn } from "@/lib/utils"
-import { MENU_ITEMS, MenuItemChild } from "@/lib/constants"
+import { MENU_ITEMS } from "@/lib/constants"
+import type { MenuItemChild } from "@/lib/types"
 
 export function SidebarMini() {
   const [openItems, setOpenItems] = useState<string[]>([])
