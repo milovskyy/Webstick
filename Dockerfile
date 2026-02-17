@@ -1,7 +1,7 @@
 FROM node:20-alpine AS base
 
-# Install dependencies for sharp
-RUN apk add --no-cache libc6-compat vips-dev
+# Install dependencies for sharp and Prisma (OpenSSL)
+RUN apk add --no-cache libc6-compat vips-dev openssl
 
 # Install dependencies only when needed
 FROM base AS deps
