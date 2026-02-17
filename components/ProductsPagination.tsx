@@ -1,6 +1,12 @@
 "use client"
 
 import {
+  FaAnglesLeft,
+  FaAnglesRight,
+  FaChevronLeft,
+  FaChevronRight,
+} from "react-icons/fa6"
+import {
   Select,
   SelectContent,
   SelectGroup,
@@ -8,14 +14,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  FaAnglesLeft,
-  FaAnglesRight,
-  FaChevronLeft,
-  FaChevronRight,
-} from "react-icons/fa6"
+import { PAGE_SIZE_OPTIONS } from "@/lib/constants"
 
-const PAGE_SIZE_OPTIONS = [5, 10, 20, 50] as const
+const NAV_BUTTON_CLASS =
+  "flex h-9 w-9 items-center justify-center rounded-md border border-[#E4E4E7] bg-white text-[#3F3F46] transition-colors hover:bg-[#F4F4F5] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
 
 type Props = {
   currentPage: number
@@ -40,9 +42,12 @@ export function ProductsPagination({
       <div className="flex items-center gap-2">
         <span className="text-sm text-[#3F3F46]">Рядки на сторінці</span>
 
-        <Select onValueChange={(value) => onPageSizeChange(Number(value))}>
+        <Select
+          value={pageSize.toString()}
+          onValueChange={(value) => onPageSizeChange(Number(value))}
+        >
           <SelectTrigger className="w-[65px] rounded-md border border-[#E4E4E7] bg-white text-[#18181B]">
-            <SelectValue placeholder={pageSize} />
+            <SelectValue placeholder="Оберіть" />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
@@ -66,7 +71,7 @@ export function ProductsPagination({
           onClick={() => onPageChange(1)}
           disabled={isFirstPage}
           aria-label="На першу сторінку"
-          className="flex h-9 w-9 items-center justify-center rounded-md border border-[#E4E4E7] bg-white text-[#3F3F46] transition-colors hover:bg-[#F4F4F5] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
+          className={NAV_BUTTON_CLASS}
         >
           <FaAnglesLeft size={11} />
         </button>
@@ -75,7 +80,7 @@ export function ProductsPagination({
           onClick={() => onPageChange(currentPage - 1)}
           disabled={isFirstPage}
           aria-label="Попередня сторінка"
-          className="flex h-9 w-9 items-center justify-center rounded-md border border-[#E4E4E7] bg-white text-[#3F3F46] transition-colors hover:bg-[#F4F4F5] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
+          className={NAV_BUTTON_CLASS}
         >
           <FaChevronLeft size={11} />
         </button>
@@ -84,7 +89,7 @@ export function ProductsPagination({
           onClick={() => onPageChange(currentPage + 1)}
           disabled={isLastPage}
           aria-label="Наступна сторінка"
-          className="flex h-9 w-9 items-center justify-center rounded-md border border-[#E4E4E7] bg-white text-[#3F3F46] transition-colors hover:bg-[#F4F4F5] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
+          className={NAV_BUTTON_CLASS}
         >
           <FaChevronRight size={11} />
         </button>
@@ -93,7 +98,7 @@ export function ProductsPagination({
           onClick={() => onPageChange(totalPages || 1)}
           disabled={isLastPage}
           aria-label="На останню сторінку"
-          className="flex h-9 w-9 items-center justify-center rounded-md border border-[#E4E4E7] bg-white text-[#3F3F46] transition-colors hover:bg-[#F4F4F5] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
+          className={NAV_BUTTON_CLASS}
         >
           <FaAnglesRight size={11} />
         </button>

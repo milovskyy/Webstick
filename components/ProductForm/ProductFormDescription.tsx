@@ -26,16 +26,14 @@ import {
 } from "lucide-react"
 import { PiYoutubeLogo } from "react-icons/pi"
 import { cn } from "@/lib/utils"
+import { MAX_IMAGE_SIZE, MAX_DESC } from "@/lib/constants"
 
 type Props = {
   value?: string
   onChange?: (html: string) => void
 }
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024
-const MAX_CHARACTERS = 5000
-
-export function FormDescription({ value, onChange }: Props) {
+export function ProductFormDescription({ value, onChange }: Props) {
   const editor = useEditor({
     immediatelyRender: false,
     editorProps: {
@@ -78,7 +76,7 @@ export function FormDescription({ value, onChange }: Props) {
       TextStyle,
       Color,
       HorizontalRule,
-      CharacterCount.configure({ limit: MAX_CHARACTERS }),
+      CharacterCount.configure({ limit: MAX_DESC }),
     ],
     content: value || "",
     onUpdate({ editor }) {
@@ -94,7 +92,7 @@ export function FormDescription({ value, onChange }: Props) {
       return
     }
 
-    if (file.size > MAX_FILE_SIZE) {
+    if (file.size > MAX_IMAGE_SIZE) {
       alert("Файл перевищує 10MB")
       return
     }
@@ -129,8 +127,7 @@ export function FormDescription({ value, onChange }: Props) {
 
         {editor && (
           <span className="text-sm text-[#A1A1AA]">
-            {editor.storage.characterCount?.characters?.() ?? 0}/
-            {MAX_CHARACTERS}
+            {editor.storage.characterCount?.characters?.() ?? 0}/{MAX_DESC}
           </span>
         )}
       </div>

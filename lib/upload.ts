@@ -2,9 +2,7 @@ import { writeFile, unlink } from "fs/promises"
 import path from "path"
 import { randomUUID } from "crypto"
 import { ensureUploadDirs } from "./image"
-
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024
-const MAX_VIDEO_SIZE = 100 * 1024 * 1024
+import { MAX_IMAGE_SIZE, MAX_VIDEO_SIZE } from "./constants"
 
 export async function saveUploadedFile(file: File) {
   if (!file) {

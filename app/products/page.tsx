@@ -1,7 +1,7 @@
-import { ProductsList } from "@/components/ProductsList"
-import { getProducts } from "@/lib/products"
 import Link from "next/link"
+import { getProducts } from "@/lib/products"
 import { FiPlus } from "react-icons/fi"
+import { ProductsList } from "@/components/ProductsList"
 
 export default async function ProductsPage() {
   const products = await getProducts()

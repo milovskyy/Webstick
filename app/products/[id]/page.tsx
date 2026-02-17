@@ -16,8 +16,6 @@ export default async function ProductDetailPage({
     notFound()
   }
 
-  console.log("product", product)
-
   return (
     <div className="flex h-full flex-col bg-[#F8F9FB] p-5 pb-8">
       <div className="mb-6 flex items-center gap-4">

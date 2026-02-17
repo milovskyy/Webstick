@@ -1,5 +1,8 @@
 "use client"
 
+import { useState } from "react"
+import { FaXmark } from "react-icons/fa6"
+import { ClipLoader } from "react-spinners"
 import {
   Dialog,
   DialogContent,
@@ -8,10 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-
-import { useState } from "react"
-import { FaXmark } from "react-icons/fa6"
-import { ClipLoader } from "react-spinners"
 
 type Props = {
   onCancel: () => void

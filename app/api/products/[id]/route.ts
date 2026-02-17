@@ -3,9 +3,13 @@ import { prisma } from "@/lib/prisma"
 import path from "path"
 import fs from "fs/promises"
 import { randomUUID } from "crypto"
-
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024 // 10MB per image
-const MAX_VIDEO_SIZE = 100 * 1024 * 1024 // 100MB per video
+import {
+  MAX_IMAGE_SIZE,
+  MAX_VIDEO_SIZE,
+  MAX_TITLE,
+  MAX_SHORT,
+  MAX_DESC,
+} from "@/lib/constants"
 
 function uploadsRoot() {
   return path.join(process.cwd(), "public", "uploads", "products")
@@ -115,9 +119,35 @@ export async function PUT(
     if (!title || title.length === 0) {
       return NextResponse.json({ error: "Назва обов'язкова" }, { status: 400 })
     }
+    if (title.length > MAX_TITLE) {
+      return NextResponse.json(
+        { error: `Назва не більше ${MAX_TITLE} символів` },
+        { status: 400 }
+      )
+    }
+    if (shortDescription && shortDescription.length > MAX_SHORT) {
+      return NextResponse.json(
+        { error: `Короткий опис не більше ${MAX_SHORT} символів` },
+        { status: 400 }
+      )
+    }
+    if (description && description.length > MAX_DESC) {
+      return NextResponse.json(
+        { error: `Опис не більше ${MAX_DESC} символів` },
+        { status: 400 }
+      )
+    }
     if (isNaN(price) || price < 0) {
       return NextResponse.json(
         { error: "Коректна ціна обов'язкова" },
+        { status: 400 }
+      )
+    }
+    if (discountPrice != null && discountPrice > 0 && discountPrice > price) {
+      return NextResponse.json(
+        {
+          error: "Ціна зі знижкою не може бути вищою за звичайну ціну",
+        },
         { status: 400 }
       )
     }
