@@ -4,14 +4,13 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { isVideoUrl } from "@/lib/media"
 import { usePreviewSmallSlots } from "@/hooks/usePreviewSmallSlots"
 import { MAX_IMAGE_SIZE, MAX_VIDEO_SIZE } from "@/lib/constants"
-import type { ProductImage } from "../lib/types"
-import type { CombinedMediaItem } from "../lib/types"
+import type { CombinedMediaItem, ProductWithImages } from "../lib/types"
 
-type UseProductFormMediaArgs = {
-  product?: { id?: string; images?: ProductImage[] } | null
+type Props = {
+  product?: ProductWithImages | null
 }
 
-export function useProductFormMedia({ product }: UseProductFormMediaArgs) {
+export function useProductFormMedia({ product }: Props) {
   const [images, setImages] = useState<File[]>([])
   const [previews, setPreviews] = useState<string[]>([])
   const [removedExistingIds, setRemovedExistingIds] = useState<string[]>([])

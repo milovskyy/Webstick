@@ -2,17 +2,11 @@ import Image from "next/image"
 import Link from "next/link"
 import { FilePen } from "lucide-react"
 import { FiTrash2 } from "react-icons/fi"
-
-type Product = {
-  id: string
-  title: string
-  shortDescription: string | null
-  price: number
-  imageSmall: string | null
-}
+import { getFirstPhotoUrl } from "@/lib/products"
+import type { ProductWithImages } from "@/lib/types"
 
 type Props = {
-  product: Product
+  product: ProductWithImages
   onDelete: () => void
 }
 
@@ -31,7 +25,7 @@ export function ProductRow({ product, onDelete }: Props) {
       >
         <div className="relative flex h-10 max-h-10 w-10 max-w-10 flex-shrink-0 items-center justify-center">
           <Image
-            src={product.imageSmall ?? "/image-placeholder.png"}
+            src={getFirstPhotoUrl(product.images) ?? "/image-placeholder.png"}
             alt="Product"
             fill
             sizes="40px"

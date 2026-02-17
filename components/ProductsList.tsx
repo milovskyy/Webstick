@@ -6,22 +6,14 @@ import { useRouter } from "next/navigation"
 import { FiPlus } from "react-icons/fi"
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants"
 import { cn } from "@/lib/utils"
-import type { ProductsMeta } from "@/lib/products"
 import { DeleteProductModal } from "./DeleteProductModal"
 import { ProductRow } from "./ProductRow"
 import { ProductsPagination } from "./ProductsPagination"
 import { SearchInput } from "./SearchInput"
-
-type Product = {
-  id: string
-  title: string
-  shortDescription: string | null
-  price: number
-  imageSmall: string | null
-}
+import type { ProductsMeta, ProductWithImages } from "@/lib/types"
 
 type Props = {
-  products: Product[]
+  products: ProductWithImages[]
   meta: ProductsMeta
   currentSearch: string
 }
@@ -41,11 +33,14 @@ function buildProductsUrl(params: {
 }
 
 export function ProductsList({ products, meta, currentSearch }: Props) {
-  const [productToDelete, setProductToDelete] = useState<Product | null>(null)
+  const [productToDelete, setProductToDelete] =
+    useState<ProductWithImages | null>(null)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [searchInputValue, setSearchInputValue] = useState(currentSearch)
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
+
+  console.log("products", products)
 
   useEffect(() => {
     setSearchInputValue(currentSearch)
@@ -85,7 +80,7 @@ export function ProductsList({ products, meta, currentSearch }: Props) {
     }
   }, [applySearch])
 
-  const handleDeleteClick = (product: Product) => {
+  const handleDeleteClick = (product: ProductWithImages) => {
     setProductToDelete(product)
     setIsDeleteModalOpen(true)
   }

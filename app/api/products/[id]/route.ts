@@ -10,6 +10,7 @@ import {
   MAX_SHORT,
   MAX_DESC,
 } from "@/lib/constants"
+import { addImageResizeJob } from "@/lib/queue"
 
 function uploadsRoot() {
   return path.join(process.cwd(), "public", "uploads", "products")
@@ -175,7 +176,7 @@ export async function PUT(
     }
 
     const uploadBase = path.join(uploadsRoot(), id)
-    const newImageRecords: { original: string }[] = []
+    const newImageRecords: { original: string; isImage: boolean }[] = []
     const newlyWrittenPaths: string[] = []
 
     for (const file of newImageFiles) {
@@ -198,6 +199,7 @@ export async function PUT(
 
       newImageRecords.push({
         original: `/uploads/products/${id}/original/${fileName}`,
+        isImage: file.type.startsWith("image/"),
       })
     }
 
@@ -253,6 +255,22 @@ export async function PUT(
         await fs.unlink(filePath)
       } catch (e) {
         console.error("Failed to remove old image file:", filePath, e)
+      }
+    }
+
+    if (newImageRecords.length > 0) {
+      const originalToIsImage = new Map(
+        newImageRecords.map((r) => [r.original, r.isImage])
+      )
+      const addedOriginals = newImageRecords.map((r) => r.original)
+      const newImages = await prisma.productImage.findMany({
+        where: { productId: id, original: { in: addedOriginals } },
+        select: { id: true, original: true },
+      })
+      for (const img of newImages) {
+        if (originalToIsImage.get(img.original)) {
+          await addImageResizeJob(id, img.id, img.original)
+        }
       }
     }
 

@@ -47,7 +47,7 @@ export default async function ProductDetailPage({
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                 {product.images.map((img) => {
                   const src =
-                    img.small ?? img.medium ?? img.large ?? img.original
+                    img.large ?? img.medium ?? img.small ?? img.original
                   if (!src) return null
                   const isVideo = isVideoUrl(src)
                   return (

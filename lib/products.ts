@@ -1,21 +1,8 @@
 import { prisma } from "@/lib/prisma"
 import { isVideoUrl } from "@/lib/media"
+import type { ProductImage, ProductsMeta } from "@/lib/types"
 
-export type ProductsMeta = {
-  total: number
-  page: number
-  perPage: number
-  totalPages: number
-}
-
-export function getFirstPhotoUrl(
-  images: {
-    small: string | null
-    medium: string | null
-    large?: string | null
-    original: string
-  }[]
-) {
+export function getFirstPhotoUrl(images: ProductImage[]) {
   const first = images.find((img) => {
     const url = img.small ?? img.medium ?? img.large ?? img.original
     return url && !isVideoUrl(url)
@@ -30,10 +17,7 @@ export async function getProducts() {
       orderBy: { createdAt: "desc" },
       include: { images: true },
     })
-    return rows.map((p) => ({
-      ...p,
-      imageSmall: getFirstPhotoUrl(p.images),
-    }))
+    return rows
   } catch (error) {
     console.error("Error fetching products:", error)
     return []
@@ -72,10 +56,7 @@ export async function getProductsPaginated(
       prisma.product.count({ where }),
     ])
 
-    const data = rows.map((p) => ({
-      ...p,
-      imageSmall: getFirstPhotoUrl(p.images),
-    }))
+    const data = rows
 
     return {
       data,

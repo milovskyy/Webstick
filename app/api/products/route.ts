@@ -11,6 +11,7 @@ import {
   MAX_SHORT,
   MAX_DESC,
 } from "@/lib/constants"
+import { addImageResizeJob } from "@/lib/queue"
 
 export async function POST(request: NextRequest) {
   try {
@@ -130,12 +131,19 @@ export async function POST(request: NextRequest) {
       const filePath = path.join(originalDir, fileName)
       await fs.writeFile(filePath, buffer)
 
-      await prisma.productImage.create({
+      const created = await prisma.productImage.create({
         data: {
           productId: product.id,
           original: `/uploads/products/${product.id}/original/${fileName}`,
         },
       })
+      if (file.type.startsWith("image/")) {
+        await addImageResizeJob(
+          product.id,
+          created.id,
+          created.original
+        )
+      }
     }
 
     revalidatePath("/products")

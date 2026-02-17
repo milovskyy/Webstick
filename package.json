@@ -11,8 +11,8 @@
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,css,md}\"",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:migrate": "prisma migrate dev",
-    "worker": "tsx worker/imageWorker.ts"
+    "worker": "tsx worker/imageWorker.ts",
+    "worker:resize": "tsx lib/image-worker.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

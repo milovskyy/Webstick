@@ -1,5 +1,6 @@
 "use client"
 
+import { useRef, useEffect } from "react"
 import { Controller } from "react-hook-form"
 import type { Control, FieldErrors } from "react-hook-form"
 import { Input } from "../ui/input"
@@ -29,6 +30,12 @@ export function ProductFormBasicFields({
   description,
   onDescriptionChange,
 }: ProductFormBasicFieldsProps) {
+  const titleInputRef = useRef<HTMLInputElement | null>(null)
+
+  useEffect(() => {
+    titleInputRef.current?.focus()
+  }, [])
+
   return (
     <div className="flex flex-col gap-4 bg-white p-4 sm:rounded-2xl sm:border sm:border-[#E4E4E7]">
       <div className="flex flex-col gap-2">
@@ -51,6 +58,18 @@ export function ProductFormBasicFields({
           render={({ field }) => (
             <Input
               {...field}
+              ref={(el) => {
+                if (typeof field.ref === "function") {
+                  field.ref(el)
+                } else if (field.ref) {
+                  ;(
+                    field.ref as React.MutableRefObject<HTMLInputElement | null>
+                  ).current = el
+                }
+                ;(
+                  titleInputRef as React.MutableRefObject<HTMLInputElement | null>
+                ).current = el
+              }}
               type="text"
               maxLength={MAX_TITLE}
               placeholder="Назва товару"

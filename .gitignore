@@ -41,3 +41,9 @@ next-env.d.ts
 
 # uploads
 /public/uploads
+
+# Windows reserved names
+nul
+CON
+PRN
+AUX
