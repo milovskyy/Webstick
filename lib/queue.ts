@@ -16,10 +16,6 @@ export type ImageResizeJobData = {
   originalImagePath: string
 }
 
-/**
- * Add a job to resize product image in background.
- * Safe to call from API: if Redis is down, logs and returns without throwing.
- */
 export async function addImageResizeJob(
   productId: string,
   imageId: string,
@@ -32,6 +28,9 @@ export async function addImageResizeJob(
       { attempts: 3, backoff: { type: "exponential", delay: 2000 } }
     )
   } catch (err) {
-    console.error("addImageResizeJob: queue unavailable, skipping background resize:", err)
+    console.error(
+      "addImageResizeJob: queue unavailable, skipping background resize:",
+      err
+    )
   }
 }

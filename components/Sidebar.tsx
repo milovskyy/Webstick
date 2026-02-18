@@ -49,17 +49,22 @@ export function Sidebar() {
       >
         {isCollapsed ? (
           <button onClick={toggleSidebar} aria-label="Toggle sidebar">
-            <Image src="/Biksico-mini.png" alt="logo" width={35} height={45} />
+            <Image
+              src="/assets/Biksico-mini.png"
+              alt="logo"
+              width={35}
+              height={45}
+            />
           </button>
         ) : (
           <div className="flex w-full justify-between">
             <Link href={`/`}>
               <Image
-                src="/Biksico.png"
+                src="/assets/Biksico.png"
                 alt="logo"
                 width={103}
                 height={29}
-                priority
+                unoptimized
               />
             </Link>
             <button

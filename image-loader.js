@@ -5,7 +5,7 @@
  * Other images use the default Next.js image optimization.
  */
 module.exports = function loader({ src, width, quality }) {
-  if (typeof src === "string" && src.startsWith("/uploads/")) {
+  if (typeof src === "string" && (src.startsWith("/uploads/") || src.startsWith("/assets/"))) {
     return src
   }
   return `/_next/image?url=${encodeURIComponent(src)}&w=${width}&q=${quality || 75}`

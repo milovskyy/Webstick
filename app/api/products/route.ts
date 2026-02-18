@@ -146,8 +146,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const productWithImages = await prisma.product.findUnique({
+      where: { id: product.id },
+      include: { images: true },
+    })
+
     revalidatePath("/products")
-    return NextResponse.json(product, { status: 201 })
+    return NextResponse.json(productWithImages ?? product, { status: 201 })
   } catch (error: unknown) {
     console.error("Error creating product:", error)
     const message =

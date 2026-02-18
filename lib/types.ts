@@ -3,13 +3,10 @@ import type {
   ProductImage as PrismaProductImage,
 } from "@prisma/client"
 
-/** Product from DB (without relations). Re-export for single source of truth. */
 export type Product = PrismaProduct
 
-/** Product image from DB. Re-export for single source of truth. */
 export type ProductImage = PrismaProductImage
 
-/** Product with images included (e.g. from getProduct, getProducts, findUnique with include: { images: true }). */
 export type ProductWithImages = Product & { images: ProductImage[] }
 
 export type ProductsMeta = {

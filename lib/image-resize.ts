@@ -33,7 +33,10 @@ export async function resizeProductImage(
 
   await fs.access(absoluteOriginal)
 
-  const baseName = path.basename(originalImagePath, path.extname(originalImagePath))
+  const baseName = path.basename(
+    originalImagePath,
+    path.extname(originalImagePath)
+  )
   const outputFileName = `${baseName}.jpg`
   const baseDir = path.join(publicRoot, "uploads", "products", productId)
   const result: ResizeResult = { small: "", medium: "", large: "" }

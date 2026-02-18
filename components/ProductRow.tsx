@@ -25,12 +25,20 @@ export function ProductRow({ product, onDelete }: Props) {
       >
         <div className="relative flex h-10 max-h-10 w-10 max-w-10 flex-shrink-0 items-center justify-center">
           <Image
-            src={getFirstPhotoUrl(product.images) ?? "/image-placeholder.png"}
+            src={
+              getFirstPhotoUrl(product.images) ??
+              "/assets/image-placeholder.png"
+            }
             alt="Product"
             fill
             sizes="40px"
             className="h-10 w-10 object-cover"
-            unoptimized={(getFirstPhotoUrl(product.images) ?? "").startsWith("/uploads/")}
+            unoptimized={
+              (getFirstPhotoUrl(product.images) ?? "").startsWith(
+                "/uploads/"
+              ) ||
+              (getFirstPhotoUrl(product.images) ?? "").startsWith("/assets/")
+            }
           />
         </div>
 
