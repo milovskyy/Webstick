@@ -1,0 +1,6 @@
+# Файли, що виконуються в Linux (Docker), — завжди LF, щоб у контейнері не було \r
+docker-compose.yml text eol=lf
+docker-compose*.yml text eol=lf
+Dockerfile text eol=lf
+.dockerignore text eol=lf
+*.sh text eol=lf

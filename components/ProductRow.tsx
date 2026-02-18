@@ -30,6 +30,7 @@ export function ProductRow({ product, onDelete }: Props) {
             fill
             sizes="40px"
             className="h-10 w-10 object-cover"
+            unoptimized={(getFirstPhotoUrl(product.images) ?? "").startsWith("/uploads/")}
           />
         </div>
 

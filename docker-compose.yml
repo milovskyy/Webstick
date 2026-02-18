@@ -18,36 +18,27 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=file:./prisma/dev.db
+      - DATABASE_URL=file:/app/prisma/prisma/dev.db
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - NODE_ENV=production
     volumes:
-      - ./prisma:/app/prisma
-      - ./public/uploads:/app/public/uploads
+      - ${PROJECT_DIR:-.}/prisma:/app/prisma
+      - ${PROJECT_DIR:-.}/public/uploads:/app/public/uploads
     depends_on:
       redis:
         condition: service_healthy
-    command: sh -c "npx prisma generate && npx prisma db push && node server.js"
-
-  worker:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    environment:
-      - DATABASE_URL=file:./prisma/dev.db
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - NODE_ENV=production
-    volumes:
-      - ./prisma:/app/prisma
-      - ./public/uploads:/app/public/uploads
-    depends_on:
-      redis:
-        condition: service_healthy
-      web:
-        condition: service_started
-    command: sh -c "npx prisma generate && npx tsx lib/image-worker.ts"
+    command: >
+      sh -c "
+        echo '=== Mounts (must see prisma/dev.db and uploads) ===' &&
+        ls -la /app/prisma /app/prisma/prisma 2>/dev/null || true &&
+        (test -f /app/prisma/prisma/dev.db && echo 'OK: prisma/prisma/dev.db found' || echo 'WARN: prisma/prisma/dev.db missing - set PROJECT_DIR in .env to project root') &&
+        ls -la /app/public/uploads 2>/dev/null || true &&
+        npx prisma generate &&
+        npx prisma db push &&
+        (npx tsx lib/image-worker.ts &) &&
+        exec node server.js
+      "
 
 volumes:
   redis-data:

@@ -70,6 +70,7 @@ export default async function ProductDetailPage({
                           fill
                           className="object-contain"
                           sizes="(max-width: 640px) 50vw, 33vw"
+                          unoptimized={src.startsWith("/uploads/")}
                         />
                       )}
                     </div>

@@ -33,14 +33,15 @@ export async function resizeProductImage(
 
   await fs.access(absoluteOriginal)
 
-  const fileName = path.basename(originalImagePath)
+  const baseName = path.basename(originalImagePath, path.extname(originalImagePath))
+  const outputFileName = `${baseName}.jpg`
   const baseDir = path.join(publicRoot, "uploads", "products", productId)
   const result: ResizeResult = { small: "", medium: "", large: "" }
 
   for (const [sizeName, width] of Object.entries(RESIZE_WIDTHS)) {
     const dir = path.join(baseDir, sizeName)
     await fs.mkdir(dir, { recursive: true })
-    const outputPath = path.join(dir, fileName)
+    const outputPath = path.join(dir, outputFileName)
 
     await sharp(absoluteOriginal)
       .rotate()
@@ -54,7 +55,7 @@ export async function resizeProductImage(
       .toFile(outputPath)
 
     result[sizeName as keyof ResizeResult] =
-      `/uploads/products/${productId}/${sizeName}/${fileName}`
+      `/uploads/products/${productId}/${sizeName}/${outputFileName}`
   }
 
   return result

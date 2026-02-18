@@ -3,6 +3,8 @@ const nextConfig = {
   images: {
     remotePatterns: [],
     domains: [],
+    loader: "custom",
+    loaderFile: "./image-loader.js",
   },
   output: "standalone",
   async rewrites() {

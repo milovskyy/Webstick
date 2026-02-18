@@ -1,21 +1,15 @@
-import sharp from 'sharp'
-import { promises as fs } from 'fs'
-import path from 'path'
+import sharp from "sharp"
+import { promises as fs } from "fs"
+import path from "path"
 
-const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads')
-
-export const IMAGE_SIZES = {
-  small: 200,
-  medium: 500,
-  large: 1000,
-} as const
+const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads")
 
 export async function ensureUploadDirs() {
   const dirs = [
-    path.join(UPLOAD_DIR, 'original'),
-    path.join(UPLOAD_DIR, 'small'),
-    path.join(UPLOAD_DIR, 'medium'),
-    path.join(UPLOAD_DIR, 'large'),
+    path.join(UPLOAD_DIR, "original"),
+    path.join(UPLOAD_DIR, "small"),
+    path.join(UPLOAD_DIR, "medium"),
+    path.join(UPLOAD_DIR, "large"),
   ]
 
   for (const dir of dirs) {
@@ -30,7 +24,7 @@ export async function resizeImage(
 ): Promise<void> {
   await sharp(inputPath)
     .resize(size, size, {
-      fit: 'inside',
+      fit: "inside",
       withoutEnlargement: true,
     })
     .toFile(outputPath)

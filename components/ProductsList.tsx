@@ -40,6 +40,8 @@ export function ProductsList({ products, meta, currentSearch }: Props) {
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
 
+  console.log("products", products)
+
   useEffect(() => {
     setSearchInputValue(currentSearch)
   }, [currentSearch])

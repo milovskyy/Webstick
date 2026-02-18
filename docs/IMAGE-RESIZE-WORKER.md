@@ -12,10 +12,36 @@ Background worker that resizes product images to small (300px), medium (600px), 
 docker-compose up -d
 ```
 
-Піднімуться три сервіси: **redis**, **web** (додаток на порту 3000), **worker** (ресайз зображень). Сайт: http://localhost:3000
+Піднімуться сервіси: **redis**, **web** (додаток на порту 3000; воркер ресайзу працює всередині web). Сайт: http://localhost:3000
 
 Переглянути логи: `docker-compose logs -f`  
 Зупинити: `docker-compose down`
+
+### Windows: у браузері 0 товарів або не видно фото
+
+Якщо через Docker показує 0 товарів (а через `npm run dev` — нормально) або не відображаються фото — контейнер не бачить ту саму папку проекту (база й `public/uploads`).
+
+**Що зробити:**
+
+1. У корені проекту створи файл `.env` (можна скопіювати з `.env.example`).
+2. Додай або переконайся, що є рядки:
+   ```
+   COMPOSE_CONVERT_WINDOWS_PATHS=1
+   PROJECT_DIR=D:/1_IT/Pratice/Next.js/Webstick-testwork
+   ```
+   Замість шляху вище вкажи **свій** повний шлях до папки проекту (можно з `/` або `\`).
+3. Запускай **завжди з кореня проекту**: `docker-compose up --build`.
+4. У логах при старті web має з’явитися `OK: prisma/prisma/dev.db found`. Якщо бачиш `WARN: prisma/prisma/dev.db missing` — перевір `PROJECT_DIR` у `.env`.
+
+### Шлях до БД у Docker
+
+База лежить у проєкті в `prisma/prisma/dev.db`. У Docker у `docker-compose.yml` вказано **абсолютний** шлях `file:/app/prisma/prisma/dev.db`, щоб Prisma CLI і runtime використовували один і той самий файл (відносні шляхи Prisma резолвить від каталогу з `schema.prisma`, тому раніше створювався зайвий файл `prisma/prisma/prisma/dev.db`). Якщо такий файл з'явився — його можна видалити.
+
+### Потік фото: форма → БД → воркер → відображення
+
+- **Створення/редагування товару (форма):** файли зберігаються на диск у `public/uploads/products/{productId}/original/{uuid}.jpg` (або інше розширення). У БД (ProductImage) зберігається лише веб-шлях: `original: "/uploads/products/{productId}/original/{fileName}"`. Для зображень одразу додається завдання в чергу BullMQ (Redis).
+- **Воркер (lib/image-worker.ts):** отримує `originalImagePath` (той самий веб-шлях), конвертує через `lib/image-resize.ts`: читає з `public/` + шлях, зберігає ресайзи в `public/uploads/products/{productId}/small|medium|large/{baseName}.jpg` і оновлює в БД поля `small`, `medium`, `large` (веб-шляхи).
+- **Читання в додатку:** у БД зберігаються веб-шляхи (`/uploads/...`). Next.js віддає статику з `public/`, тому URL `/uploads/products/.../small/xxx.jpg` відповідає файлу `public/uploads/products/.../small/xxx.jpg`. У UI використовується пріоритет: `img.large ?? img.medium ?? img.small ?? img.original`.
 
 ### Помилка "authentication required - email must be verified"
 

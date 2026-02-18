@@ -42,7 +42,7 @@ export function MediaPreview({
       fill
       sizes={sizes}
       className={finalClassName}
-      unoptimized={url.startsWith("blob:")}
+      unoptimized={url.startsWith("blob:") || url.startsWith("/uploads/")}
     />
   )
 }
